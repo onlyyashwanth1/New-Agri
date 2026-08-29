@@ -1041,6 +1041,8 @@ def manage_lands(aadhar_id):
         lands = cursor.fetchall()
 
     cursor.close()
+    for land in lands:
+        land['location_parts'] = split_farmer_address(land.get('location'))
 
     return render_template('manage_lands.html', farmer=farmer, lands=lands)
 
