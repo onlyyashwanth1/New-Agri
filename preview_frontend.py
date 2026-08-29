@@ -247,12 +247,12 @@ def init_db(db_path):
         # Default Farmer
         cursor.execute(
             "INSERT INTO farmers (farmer_name, date_of_birth, gender, phone_no, address, aadhar_id, first_login) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            ("John Doe", "1980-05-15", "Male", "9876543210", "Hyderabad, Telangana, India", "123412341234", 0)
+            ("John Doe", "1980-05-15", "Male", "9876543210", "Hyderabad, 500001, Telangana", "123412341234", 0)
         )
         # Default Land
         cursor.execute(
             "INSERT INTO lands (aadhar_id, location, soil_type, land_size, deleted) VALUES (?, ?, ?, ?, ?)",
-            ("123412341234", "North Field", "Loamy", 5.5, 0)
+            ("123412341234", "Hyderabad, 500001, Telangana", "Loamy", 5.5, 0)
         )
         # Default Crop
         cursor.execute(
