@@ -249,7 +249,12 @@ def init_db(db_path):
             "INSERT INTO farmers (farmer_name, date_of_birth, gender, phone_no, address, aadhar_id, first_login) VALUES (?, ?, ?, ?, ?, ?, ?)",
             ("John Doe", "1980-05-15", "Male", "9876543210", "Hyderabad, 500001, Telangana", "123412341234", 0)
         )
-        # Default Land
+            # Reusable demo farmer requested for preview testing
+        cursor.execute(
+            "INSERT INTO farmers (farmer_name, date_of_birth, gender, phone_no, address, aadhar_id, first_login) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("rishiksai", "1995-01-01", "Male", "1472583690", "Shadnagar, 509216, Telangana", "123456781233", 0)
+        )
+    # Default Land
         cursor.execute(
             "INSERT INTO lands (aadhar_id, location, soil_type, land_size, deleted) VALUES (?, ?, ?, ?, ?)",
             ("123412341234", "Hyderabad, 500001, Telangana", "Loamy", 5.5, 0)
