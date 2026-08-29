@@ -7,3 +7,5 @@ joblib
 numpy
 scikit-learn==1.5.2
 dotenv
+requests
+google-genai
