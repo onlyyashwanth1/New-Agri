@@ -1,0 +1,198 @@
+{% extends "base2.html" %}
+
+{% block title %}Manage Schemes{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+<style>
+    /* Add Scheme Form */
+    .add-scheme-form {
+        margin-bottom: 20px;
+    }
+    
+    /* Scheme Table */
+    #scheme-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    #scheme-table th,
+    #scheme-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    #scheme-table th {
+        background-color: #f2f2f2;
+    }
+
+    /* Hover effect for table rows */
+    #scheme-table tr:hover {
+        background-color: #f1f1f1;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Search Bar -->
+    <form id="search-form" method="GET" action="{{ url_for('manage_schemes') }}" class="search-form">
+        <input type="text" name="scheme_name" placeholder="Search by Scheme Name" class="input-field" required>
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+    <!-- Add Scheme Button -->
+    <button id="toggle-add-scheme" class="add-button">Add Scheme</button>
+
+    <!-- Add Scheme Form (Initially Hidden) -->
+    <form id="add-scheme-form" method="POST" action="{{ url_for('add_scheme') }}" class="add-scheme-form" style="display:none;">
+        <h2 class="form-title">Register New Scheme</h2>
+
+        <!-- Scheme Type -->
+        <div class="form-group">
+            <label for="scheme_name">Scheme Type</label>
+            <input type="text" id="scheme_name" name="scheme_name" required placeholder="Enter Scheme Type" />
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" required placeholder="Enter Description"></textarea>
+        </div>
+
+        <!-- Eligibility -->
+        <div class="form-group">
+            <label for="eligibility">Eligibility</label>
+            <textarea id="eligibility" name="eligibility" required placeholder="Enter Eligibility"></textarea>
+        </div>
+
+        <!-- Last Date to Apply -->
+        <div class="form-group">
+            <label for="last_date_apply">Last Date to Apply</label>
+            <input type="date" id="last_date_apply" name="last_date_apply" required />
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-button" aria-label="Add Scheme">Add Scheme</button>
+        <button type="button" class="cancel-button" onclick="toggleForm()">Cancel</button>
+    </form>
+
+    <!-- Scheme Table -->
+    <div class="table-container">
+        <table id="scheme-table">
+            <thead>
+                <tr>
+                    <th>Scheme Type</th>
+                    <th>Description</th>
+                    <th>Eligibility</th>
+                    <th>Last Date to Apply</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scheme in schemes %}
+                <tr data-id="{{ scheme['scheme_id'] }}">
+                    <td>{{ scheme['scheme_name'] }}</td>
+                    <td contenteditable="true" data-field="description">{{ scheme['description'] }}</td>
+                    <td contenteditable="true" data-field="eligibility">{{ scheme['eligibility'] }}</td>
+                    <td contenteditable="true" data-field="last_date_apply">{{ scheme['last_date_apply'].strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <!-- Update Button -->
+                            <form action="{{ url_for('update_scheme', id=scheme['scheme_id']) }}" method="post" class="update-form" onsubmit="return handleUpdate(event, {{ scheme['scheme_id'] }})">
+                                <button type="submit" class="action-button update-button">Update</button>
+                            </form>
+                            
+                            <!-- Delete Button -->
+                            <form action="{{ url_for('delete_scheme', scheme_id=scheme['scheme_id']) }}" method="post">
+                                <button type="submit" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this scheme?');">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- JavaScript Section -->
+<script>
+    // Toggle visibility of the add scheme form
+    document.getElementById("toggle-add-scheme").addEventListener("click", function() {
+        const form = document.getElementById("add-scheme-form");
+        form.style.display = (form.style.display === "none" || form.style.display === "") ? "block" : "none";
+    });
+
+    function toggleForm() {
+        const form = document.getElementById("add-scheme-form");
+        form.style.display = "none";
+    }
+    function handleUpdate(event, id) {
+        event.preventDefault(); // Prevent default form submission
+
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        
+        if (!row) {
+            console.error(`Row with ID ${id} not found`);
+            return;
+        }
+        
+        const cells = row.querySelectorAll('td[contenteditable="true"]');
+        console.log(`Cells found: ${cells.length}`, cells); // Debug log for cells
+    
+        // Check if we have exactly 3 editable cells
+        if (cells.length !== 3) { 
+            console.error('Expected 3 editable cells but found:', cells.length);
+            return;
+        }
+        
+        const formData = new FormData();
+        
+        const description = cells[0].innerText.trim(); // Update index to 0 for description
+        const eligibility = cells[1].innerText.trim(); // Update index to 1 for eligibility
+        const lastDateApply = cells[2].innerText.trim(); // Update index to 2 for last date to apply
+        
+        if (!description || !eligibility || !lastDateApply) {
+            alert('All fields must be filled!');
+            return;
+        }
+        
+        formData.append('description', description);
+        formData.append('eligibility', eligibility);
+        formData.append('last_date_apply', lastDateApply);
+        
+        fetch(`/update_scheme/${id}`, {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('Update successful!');
+                location.reload();  // Reload the page to see updated data
+            } else {
+                console.error('Response not OK:', response);
+                alert('Error updating scheme');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('There was an error updating the scheme. Please try again.');
+        });
+    }
+</script>
+{% endblock %}

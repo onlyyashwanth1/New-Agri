@@ -1,0 +1,77 @@
+{% extends "base4.html" %}
+
+{% block title %}Farmer Lands{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+    <style>
+        /* Lands Table */
+        #lands-table {
+            width: 100%; /* Full width */
+            border-collapse: collapse; /* Combine borders */
+        }
+    
+        #lands-table th,
+        #lands-table td {
+            border: 1px solid #ddd; /* Borders for cells */
+            padding: 8px; /* Padding for cells */
+            text-align: left; /* Align text to left */
+        }
+    
+        #lands-table th {
+            background-color: #f2f2f2; /* Light gray for header */
+        }
+    
+        /* Hover effect for table rows */
+        #lands-table tr:hover {
+            background-color: #f1f1f1; /* Light gray on hover */
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+        
+    <form id="search-form" action="{{ url_for('farmer_lands', aadhar_id=farmer['aadhar_id']) }}" method="GET" class="search-form">
+        <input type="text" name="search_avail_land" placeholder="Search by Location" required class="input-field">
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+        <div class="table-container">
+            <table id="lands-table">
+                <thead>
+                    <tr>
+                        <th>Land ID</th>
+                        <th>Location</th>
+                        <th>Soil Type</th>
+                        <th>Land Size</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for land in lands %}
+                        <tr>
+                            <td>{{ land['land_id'] }}</td>
+                            <td>{{ land['location'] }}</td>
+                            <td>{{ land['soil_type'] }}</td>
+                            <td>{{ land['land_size'] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>     
+</div>
+{% endblock %}
+
+    

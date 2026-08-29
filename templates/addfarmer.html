@@ -1,0 +1,75 @@
+
+{% extends "base2.html" %}
+
+{% block title %}Add Farmer{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/addfarmer.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <h2 class="title">Register New Farmer</h2>
+    
+    <!-- Form for registering a new farmer -->
+    <form id="registerForm" method="POST" action="{{ url_for('addfarmer') }}">
+
+        <!-- Display flash messages for feedback -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Farmer Name -->
+        <div class="form-group">
+            <label for="f_name">Farmer Name</label>
+            <input type="text" id="f_name" name="f_name" required />
+        </div>
+
+        <!-- Date of Birth -->
+        <div class="form-group">
+            <label for="f_dob">Date of Birth</label>
+            <input type="date" id="f_dob" name="f_dob" required />
+        </div>
+
+        <!-- Gender Selection -->
+        <div class="form-group">
+            <label for="f_gender">Select Gender</label>
+            <select id="f_gender" name="f_gender" required>
+                <option value="male" selected>Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        
+        <!-- Phone Number -->
+        <div class="form-group">
+            <label for="f_phone">Phone Number</label>
+            <input type="tel" id="f_phone" name="f_phone" required pattern="[0-9]{10}" title="Phone number should be 10 digits"/>
+        </div>
+
+        <!-- Address -->
+        <div class="form-group">
+            <label for="f_address">Address</label>
+            <input type="text" id="f_address" name="f_address" required />
+        </div>
+
+        <!-- AADHAR ID -->
+        <div class="form-group">
+            <label for="f_aadharId">AADHAR ID</label>
+            <input type="text" id="f_aadharId" name="f_aadharId" required pattern="[0-9]{12}" title="AADHAR number should be 12 digits"/>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="register-button">Register</button>
+
+    </form>
+</div>
+  
+
+{% endblock %}

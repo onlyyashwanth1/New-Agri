@@ -1,0 +1,127 @@
+
+body {
+    font-family: Arial, sans-serif; /* Set a default font */
+    background-color: #f8f9fa; /* Light background for contrast */
+    margin: 0; /* Reset default margin */
+    padding: 0; /* Reset default padding */
+}
+
+.main-container {
+    max-width: 800px; /* Maximum width for the container */
+    margin: auto; /* Center container */
+    padding: 20px; /* Padding around the container */
+}
+
+/* Message styling */
+.flash-message {
+    margin: 1rem;
+    padding: 1rem;
+    border-radius: 0.25rem;
+}
+
+.flash-message.success {
+    background-color: #C6F6D5; /* Green background */
+    color: #2F855A; /* Green text */
+}
+
+.flash-message.error {
+    background-color: #FEEBC8; /* Yellow background */
+    color: #C05621; /* Red text */
+}
+
+.search-form {
+    display: flex; /* Flex layout for search form */
+    align-items: center; /* Center items vertically */
+    margin-bottom: 20px; /* Margin below search form */
+}
+
+.search-input {
+    border: 1px solid #ccc; /* Border for input */
+    border-radius: 5px; /* Rounded corners */
+    padding: 10px; /* Padding inside input */
+    flex: 1; /* Take up available space */
+    min-width: 0; /* Allow the input to shrink properly */
+}
+
+.search-button {
+    background-color: #007bff; /* Blue background */
+    color: white; /* White text */
+    padding: 10px 15px; /* Padding for button */
+    border: none; /* Remove border */
+    border-radius: 5px; /* Rounded corners */
+    margin-left: 10px; /* Space between input and button */
+    cursor: pointer; /* Pointer cursor on hover */
+}
+
+.search-button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+.table-container {
+    overflow-x: auto; /* Enable horizontal scrolling */
+    margin-top: 20px; /* Space above table */
+}
+
+table {
+    width: 100%; /* Full width for the table */
+    border-collapse: collapse; /* Remove space between borders */
+}
+
+th, td {
+    border: 1px solid #ccc; /* Border for cells */
+    padding: 10px; /* Padding for cells */
+    text-align: left; /* Left align text */
+}
+
+th {
+    background-color: #f2f2f2; /* Light gray background for header */
+}
+
+tr:hover {
+    background-color: #f1f1f1; /* Light background on row hover */
+}
+
+.action-buttons {
+    display: flex; /* Flex layout for buttons */
+    gap: 5px; /* Space between buttons */
+}
+
+.action-button {
+    background-color: #007bff; /* Blue background */
+    color: white; /* White text */
+    padding: 7px 10px; /* Padding for button */
+    border: none; /* Remove border */
+    border-radius: 6px; /* Rounded corners */
+    cursor: pointer; /* Pointer cursor on hover */
+}
+
+.action-button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+.delete-button {
+    background-color: #dc3545; /* Red background for delete */
+}
+
+.delete-button:hover {
+    background-color: #c82333; /* Darker red on hover */
+}
+
+/* Responsive styles */
+@media (max-width: 640px) {
+    .search-form {
+        flex-direction: column; /* Stack input and button on mobile */
+        width: 100%; /* Ensure the form takes the full width */
+    }
+
+    .search-input,
+    .search-button {
+        width: 100%; /* Make input and button take the full width */
+        margin-left: 0; /* Remove left margin on mobile */
+        margin-top: 10px; /* Space above button */
+    }
+
+    .search-button {
+        margin-top: 10px; /* Add space above button */
+    }
+}

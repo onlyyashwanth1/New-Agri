@@ -1,0 +1,128 @@
+
+{% extends "base3.html" %}
+
+{% block title %}Manage Subsidies Taken{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+<style>
+    /* Add Subsidy Form */
+    .add-subsidy-form {
+        margin-bottom: 20px;
+    }
+    
+    /* Subsidies Taken Table */
+    #subsidy-taken-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    #subsidy-taken-table th,
+    #subsidy-taken-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    #subsidy-taken-table th {
+        background-color: #f2f2f2;
+    }
+
+    /* Hover effect for table rows */
+    #subsidy-taken-table tr:hover {
+        background-color: #f1f1f1;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Search Bar -->
+    <form id="search-form" action="{{ url_for('manage_subsidies_taken', aadhar_id=farmer['aadhar_id']) }}" method="GET" class="search-form">
+        <input type="text" name="search_subsidy_taken" placeholder="Search by Subsidy Name" required class="input-field">
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+    <!-- Add New Subsidy Button -->
+    <button id="toggle-add-subsidy" class="add-button">Add New Subsidy</button>
+
+    <!-- Add New Subsidy Form (Initially Hidden) -->
+    <form id="add-subsidy-form" method="POST" action="{{ url_for('add_subsidy_taken', aadhar_id=farmer['aadhar_id']) }}" class="add-subsidy-form" style="display:none;">
+        <h2 class="form-title">Register New Subsidy</h2>
+
+        <!-- Subsidy Name -->
+        <div class="form-group">
+            <label for="subsidy_name">Subsidy Name</label>
+            <select name="subsidy_name" required>
+                {% for subsidy in active_subsidies %}
+                    <option value="{{ subsidy.subsidy_name }}">{{ subsidy.subsidy_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Sanction Date -->
+        <div class="form-group">
+            <label for="sanction_date">Sanction Date</label>
+            <input type="date" name="sanction_date" required class="input-field">
+        </div>
+
+        <!-- Submit and Cancel Buttons -->
+        <button type="submit" class="submit-button">Add Subsidy</button>
+        <button type="button" class="cancel-button" onclick="toggleForm()">Cancel</button>
+    </form>
+
+    <!-- Subsidies Taken Table -->
+    <div class="table-container">
+        <table id="subsidy-taken-table">
+            <thead>
+                <tr>
+                    <th>Subsidy Name</th>
+                    <th>Sanction Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subsidy in subsidies_taken %}
+                    <tr>
+                        <td>{{ subsidy.subsidy_name }}</td>
+                        <td>{{ subsidy.sanction_date }}</td>
+                        <td>
+                            <!-- Delete Button -->
+                            <form action="{{ url_for('delete_subsidy_taken', aadhar_id=farmer['aadhar_id'], subsidy_name=subsidy['subsidy_name'], sanction_date=subsidy['sanction_date']) }}" method="POST">
+                                <button type="submit" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this subsidy?');">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- JavaScript for Form Toggle -->
+<script>
+    // Toggle visibility of the add subsidy form
+    document.getElementById("toggle-add-subsidy").addEventListener("click", function() {
+        const form = document.getElementById("add-subsidy-form");
+        form.style.display = (form.style.display === "none" || form.style.display === "") ? "block" : "none";
+    });
+
+    function toggleForm() {
+        const form = document.getElementById("add-subsidy-form");
+        form.style.display = "none";
+    }
+</script>
+{% endblock %}

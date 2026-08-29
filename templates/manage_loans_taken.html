@@ -1,0 +1,205 @@
+
+{% extends "base3.html" %}
+
+{% block title %}Manage Loans Taken{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+<style>
+    /* Add Loan Form */
+    .add-loan-form {
+        margin-bottom: 20px; /* Space below form */
+    }
+    /* Loans Taken Table */
+    #loan-taken-table {
+        width: 100%; /* Full width */
+        border-collapse: collapse; /* Combine borders */
+    }
+
+    #loan-taken-table th,
+    #loan-taken-table td {
+        border: 1px solid #ddd; /* Borders for cells */
+        padding: 8px; /* Padding for cells */
+        text-align: left; /* Align text to left */
+    }
+
+    #loan-taken-table th {
+        background-color: #f2f2f2; /* Light gray for header */
+    }
+
+    /* Hover effect for table rows */
+    #loan-taken-table tr:hover {
+        background-color: #f1f1f1; /* Light gray on hover */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Search Bar -->
+    <form id="search-form" action="{{ url_for('manage_loans_taken', aadhar_id=farmer['aadhar_id']) }}" method="GET" class="search-form">
+        <input type="text" name="search_loan_taken" placeholder="Search by Loan Type" required class="input-field">
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+    <!-- Add New Loan Button -->
+    <button id="toggle-add-loan" class="add-button">Add New Loan</button>
+
+    <!-- Add New Loan Form (Initially Hidden) -->
+    <form id="add-loan-form" method="POST" action="{{ url_for('add_loan_taken', aadhar_id=farmer['aadhar_id']) }}" class="add-loan-form" style="display:none;">
+        <h2 class="form-title">Register New Loan</h2>
+
+        <!-- Loan Type -->
+        <div class="form-group">
+            <label for="loan_type">Loan Type</label>
+            <select name="loan_type" required>
+                {% for loan in active_loans %}
+                    <option value="{{ loan.loan_type }}">{{ loan.loan_type }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Bank Name -->
+        <div class="form-group">
+            <label for="bank_name">Bank Name</label>
+            <input type="text" name="bank_name" required placeholder="Enter Bank Name" class="input-field">
+        </div>
+
+        <!-- Sanction Date -->
+        <div class="form-group">
+            <label for="sanction_date">Sanction Date</label>
+            <input type="date" name="sanction_date" required class="input-field">
+        </div>
+
+        <!-- Due Date -->
+        <div class="form-group">
+            <label for="due_date">Due Date</label>
+            <input type="date" name="due_date" required class="input-field">
+        </div>
+
+        <!-- Amount Taken -->
+        <div class="form-group">
+            <label for="amount_taken">Amount Taken</label>
+            <input type="number" step="0.01" name="amount_taken" required class="input-field" min="0.01" title="Amount must be greater than 0">
+        </div>
+
+         <!-- Status -->
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select name="status" required>
+                <option value="unpaid">Unpaid</option>
+                <option value="paid">Paid</option>
+            </select>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-button">Add Loan</button>
+        <button type="button" class="cancel-button" onclick="toggleForm()">Cancel</button>
+    </form>
+
+    <!-- Loans Taken Table -->
+    <div class="table-container">
+        <table id="loan-taken-table">
+            <thead>
+                <tr>
+                    <th>Loan Type</th>
+                    <th>Bank Name</th>
+                    <th>Sanction Date</th>
+                    <th>Due Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans_taken %}
+                    <tr data-id="{{ loan['loan_type'] }}-{{ loan['sanction_date'] }}">
+                        <td>{{ loan['loan_type'] }}</td>
+                        <td>{{ loan['bank_name'] }}</td>
+                        <td>{{ loan['sanction_date'] }}</td>
+                        <td>{{ loan['due_date'] }}</td>
+                        <td>{{ loan['amount_taken'] }}</td>
+                        <td contenteditable="true" data-field="status">{{ loan['status'] }}</td>  <!-- Editable Status -->
+                        <td>
+                            <div class="action-buttons">
+                                <form action="{{ url_for('update_loan_taken', aadhar_id=farmer['aadhar_id'], loan_type=loan['loan_type'], sanction_date=loan['sanction_date']) }}" method="post" onsubmit="return handleUpdate(event, '{{ farmer['aadhar_id'] }}', '{{ loan['loan_type'] }}', '{{ loan['sanction_date'] }}');">
+                                    <button type="submit" class="action-button update-button">Update</button>
+                                </form>
+                                <form action="{{ url_for('delete_loan_taken', aadhar_id=farmer['aadhar_id'], loan_type=loan['loan_type'], sanction_date=loan['sanction_date']) }}" method="post">
+                                    <button type="submit" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this loan?');">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- JavaScript Section -->
+<script>
+    // Toggle visibility of the add loan form
+    document.getElementById("toggle-add-loan").addEventListener("click", function() {
+        const form = document.getElementById("add-loan-form");
+        form.style.display = (form.style.display === "none" || form.style.display === "") ? "block" : "none";
+    });
+
+    function toggleForm() {
+        const form = document.getElementById("add-loan-form");
+        form.style.display = "none";
+    }
+
+    function handleUpdate(event, aadharId, loanType, sanctionDate) {
+        event.preventDefault(); // Prevent the default form submission
+        
+        const row = document.querySelector(`tr[data-id="${loanType}-${sanctionDate}"]`);
+        
+        if (!row) {
+            console.error(`Row with ID ${loanType}-${sanctionDate} not found`);
+            return;
+        }
+        
+        const statusCell = row.querySelector('td[data-field="status"]');
+        const newStatus = statusCell.innerText.trim();  // Capture the new status
+
+        if (!newStatus) {
+            alert('Status field must be filled!');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('status', newStatus);
+        
+        fetch(`/update_loan_taken/${aadharId}/${loanType}/${sanctionDate}`, {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('Update successful!');
+                location.reload();  // Reload the page to see updated data
+            } else {
+                console.error('Response not OK:', response);
+                alert('Error updating loan status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('There was an error updating the loan status. Please try again.');
+        });
+    }
+</script>
+{% endblock %}

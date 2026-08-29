@@ -1,0 +1,58 @@
+{% extends "base4.html" %}
+
+{% block title %}Farmer Details{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/farmer_details.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <h2 class="title">Farmer Details</h2>
+
+    <!-- Displaying Farmer Details -->
+    <div class="details-group">
+        <div class="detail-item">
+            <label for="f_name">Name</label>
+            <span id="f_name">{{ farmer['farmer_name'] }}</span>
+        </div>
+
+        <div class="detail-item">
+            <label for="f_dob">Date of Birth</label>
+            <span id="f_dob">{{ farmer['date_of_birth'] }}</span>
+        </div>
+
+        <div class="detail-item">
+            <label for="f_gender">Gender</label>
+            <span id="f_gender">{{ farmer['gender'] }}</span>
+        </div>
+
+        <div class="detail-item">
+            <label for="f_phone">Phone Number</label>
+            <span id="f_phone">{{ farmer['phone_no'] }}</span>
+        </div>
+
+        <div class="detail-item">
+            <label for="f_address">Address</label>
+            <span id="f_address">{{ farmer['address'] }}</span>
+        </div>
+
+        <div class="detail-item">
+            <label for="f_aadharId">AADHAR ID</label>
+            <span id="f_aadharId">{{ farmer['aadhar_id'] }}</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

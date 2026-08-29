@@ -1,0 +1,75 @@
+{% extends "base4.html" %}
+
+{% block title %}Apply for {{ item_name }}{% endblock %}
+
+{% block content %}
+<div class="main-container bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto my-8">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">Application Form</h2>
+    
+    <form action="{{ url_for('submit_application') }}" method="POST" class="space-y-6">
+        <input type="hidden" name="item_type" value="{{ item_type }}">
+        <input type="hidden" name="item_name" value="{{ item_name }}">
+
+        <!-- Scheme/Subsidy Information Block -->
+        <div class="bg-blue-50 p-4 rounded-md mb-6 border border-blue-100">
+            <h3 class="font-bold text-blue-900 mb-1">Applying For:</h3>
+            <p class="text-lg font-semibold text-blue-800">{{ item_name }} ({{ item_type | capitalize }})</p>
+            <p class="text-sm text-gray-600 mt-2"><span class="font-semibold">Description:</span> {{ item_details['description'] }}</p>
+            <p class="text-sm text-gray-600 mt-1"><span class="font-semibold">Eligibility:</span> {{ item_details['eligibility'] }}</p>
+            <p class="text-sm text-red-600 mt-1 font-semibold"><span class="font-semibold text-gray-600">Last Date to Apply:</span> {{ item_details['last_date_apply'].strftime('%Y-%m-%d') }}</p>
+        </div>
+
+        <!-- Pre-filled Demographics (Read-only) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Farmer Name</label>
+                <input type="text" class="w-full p-2.5 bg-gray-100 border border-gray-300 rounded text-gray-600 cursor-not-allowed" value="{{ farmer['farmer_name'] }}" readonly>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Aadhar ID</label>
+                <input type="text" class="w-full p-2.5 bg-gray-100 border border-gray-300 rounded text-gray-600 cursor-not-allowed" value="{{ farmer['aadhar_id'] }}" readonly>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Phone Number</label>
+                <input type="text" class="w-full p-2.5 bg-gray-100 border border-gray-300 rounded text-gray-600 cursor-not-allowed" value="{{ farmer['phone_no'] }}" readonly>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Address</label>
+                <input type="text" class="w-full p-2.5 bg-gray-100 border border-gray-300 rounded text-gray-600 cursor-not-allowed" value="{{ farmer['address'] }}" readonly>
+            </div>
+        </div>
+
+        <!-- Total Land & Recent Crops (Auto-filled) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Total Land Holding</label>
+                <div class="p-2.5 bg-gray-100 border border-gray-300 rounded text-gray-800 font-bold">
+                    {{ total_land_size }} Acres
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Recent Crops Grown</label>
+                <div class="p-2.5 bg-gray-100 border border-gray-300 rounded text-gray-800 space-y-1">
+                    {% if recent_crops %}
+                        {% for crop in recent_crops %}
+                            <div class="text-sm">🌱 <span class="font-semibold">{{ crop['crop_name'] | capitalize }}</span> (Planted: {{ crop['planting_date'] }})</div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-sm text-gray-400 italic">No crop records found</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-end space-x-3 pt-4 border-t">
+            {% if item_type == 'subsidy' %}
+                <a href="{{ url_for('available_subsidies') }}" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 font-semibold transition">Cancel</a>
+            {% else %}
+                <a href="{{ url_for('available_schemes') }}" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 font-semibold transition">Cancel</a>
+            {% endif %}
+            <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold shadow transition">Submit Application</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Available Loans{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+<style>
+    /* Loan Table */
+    #loan-table {
+        width: 100%;
+        border-collapse: collapse; /* Ensure borders are combined */
+    }
+
+    #loan-table th,
+    #loan-table td {
+        border: 1px solid #ddd; /* Add borders between columns */
+        padding: 8px; /* Ensure padding for cells */
+        text-align: left; /* Align text to the left */
+    }
+
+    #loan-table th {
+        background-color: #f2f2f2; /* Light gray for header */
+    }
+
+    /* Hover effect for table rows */
+    #loan-table tr:hover {
+        background-color: #f1f1f1; /* Light grey on hover */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Search Bar -->
+    <form id="search-form" method="GET" action="{{ url_for('available_loans') }}" class="search-form">
+        <input type="text" name="loan_type" placeholder="Search by Loan Type" class="input-field" required>
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+    <!-- Loan Table -->
+    <div class="table-container">
+        <table id="loan-table">
+            <thead>
+                <tr>
+                    <th>Loan Type</th>
+                    <th>Description</th>
+                    <th>Eligibility</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                <tr>
+                    <td>{{ loan['loan_type'] }}</td>
+                    <td>{{ loan['description'] }}</td>
+                    <td>{{ loan['eligibility'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

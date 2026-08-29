@@ -1,0 +1,74 @@
+{% extends "base4.html" %}
+
+{% block title %}Farmer Subsidies Taken{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+    <style>
+        
+        /* Subsidies Taken Table */
+        #subsidy-taken-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+    
+        #subsidy-taken-table th,
+        #subsidy-taken-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+    
+        #subsidy-taken-table th {
+            background-color: #f2f2f2;
+        }
+    
+        /* Hover effect for table rows */
+        #subsidy-taken-table tr:hover {
+            background-color: #f1f1f1;
+        }
+    
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Search Bar -->
+    <form id="search-form" action="{{ url_for('farmer_subsidies_taken') }}" method="GET" class="search-form">
+        <input type="text" name="search_subsidy_taken" placeholder="Search by Subsidy Name" class="input-field">
+        <button type="submit" class="search-button">Search</button>
+    </form>
+    
+        <!-- Subsidies Taken Table -->
+        <div class="table-container">
+            <table id="subsidy-taken-table">
+                <thead>
+                    <tr>
+                        <th>Subsidy Name</th>
+                        <th>Sanction Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subsidy in subsidies_taken %}
+                        <tr>
+                            <td>{{ subsidy.subsidy_name }}</td>
+                            <td>{{ subsidy.sanction_date }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+</div>
+{% endblock %}

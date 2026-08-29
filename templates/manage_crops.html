@@ -1,0 +1,209 @@
+
+{% extends "base3.html" %}
+
+{% block title %}Manage Crops{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+<style>
+    /* Add Crop Form */
+    .add-crop-form {
+        margin-bottom: 20px;
+    }
+    /* Crops Table */
+    #crop-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    #crop-table th,
+    #crop-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+    }
+
+    #crop-table th {
+        background-color: #f2f2f2;
+    }
+
+    /* Hover effect for table rows */
+    #crop-table tr:hover {
+        background-color: #f1f1f1;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Search Form -->
+    <form id="search-form" action="{{ url_for('manage_crops', aadhar_id=farmer['aadhar_id']) }}" method="GET" class="search-form">
+        <input type="text" name="search_crop" placeholder="Search by Crop name" class="input-field">
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+    <!-- Add New Crop Button -->
+    <button id="toggle-add-crop" class="add-button">Add New Crop</button>
+
+    <!-- Add New Crop Form (Initially Hidden) -->
+    <form id="add-crop-form" method="POST" action="{{ url_for('add_crop', aadhar_id=farmer['aadhar_id']) }}" class="add-crop-form" style="display:none;" onsubmit="return validateCropSize();">
+        <h2 class="form-title">Register New Crop</h2>
+
+        <!-- Land ID Selection -->
+        <div class="form-group">
+            <label for="land_id">Land ID</label>
+            <select id="land_id" name="land_id" required>
+                <option value="">Select Land</option>
+                {% for land in available_lands %}
+                    <option value="{{ land['land_id'] }}" data-land-size="{{ land['land_size'] }}">{{ land['land_id'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Hidden Field for Land Size -->
+        <input type="hidden" id="land_size" name="land_size">
+
+        <!-- Crop Name -->
+        <div class="form-group">
+            <label for="crop_name">Crop Name</label>
+            <input type="text" name="crop_name" required placeholder="Enter Crop Name" class="input-field">
+        </div>
+
+        <!-- Crop Size -->
+        <div class="form-group">
+            <label for="crop_size">Crop Size</label>
+            <input type="number" step="0.01" name="crop_size" id="crop_size" required class="input-field" min="0.01" title="Crop size must be greater than or equal to 0.01 acres">
+        </div>
+
+        <div class="form-group">
+            <label for="N_percent">N%</label>
+            <input type="number" step="0.1" name="N_percent" required class="input-field">
+        </div>
+        <div class="form-group">
+            <label for="P_percent">P%</label>
+            <input type="number" step="0.1" name="P_percent" required class="input-field">
+        </div>
+        <div class="form-group">
+            <label for="K_percent">K%</label>
+            <input type="number" step="0.1" name="K_percent" required class="input-field">
+        </div>
+        <!-- Soil pH -->
+        <div class="form-group">
+            <label for="soil_ph">Soil pH</label>
+            <input type="number" step="0.1" name="soil_ph" required class="input-field">
+        </div>
+
+        <!-- Planting Date -->
+        <div class="form-group">
+            <label for="planting_date">Planting Date</label>
+            <input type="date" name="planting_date" required class="input-field">
+        </div>
+
+        <!-- Harvest Date (Optional) -->
+        <div class="form-group">
+            <label for="harvest_date">Harvest Date </label>
+            <input type="date" name="harvest_date" required id="harvest_date">
+        </div>
+
+        <!-- Crop Suggestion (Optional) -->
+        <div class="form-group">
+            <label for="crop_suggestion">Crop Suggestion (Optional)</label>
+            <input type="text" name="crop_suggestion" id="crop_suggestion">
+        </div>
+
+        
+        
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-button">Add Crop</button>
+        <button type="button" class="cancel-button" onclick="toggleForm()">Cancel</button>
+    </form>
+
+    <!-- Crops Table -->
+    <div class="table-container">
+        <table id="crop-table">
+            <thead>
+                <tr>
+                    <th>Land ID</th>
+                    <th>Crop Name</th>
+                    <th>Crop Size</th>
+                    <th>N%</th>
+                    <th>P%</th>
+                    <th>K%</th>
+                    <th>Soil pH</th>
+                    <th>Planting Date</th>
+                    <th>Harvest Date</th>
+                    <th>Crop Suggestion</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for crop in crops %}
+                    <tr data-land-id="{{ crop['land_id'] }}" data-crop-name="{{ crop['crop_name'] }}" data-planting-date="{{ crop['planting_date'] }}">
+                        <td>{{ crop['land_id']}}</td>
+                        <td>{{ crop['crop_name'] }}</td>
+                        <td>{{ crop['crop_size'] }}</td>
+                        <td>{{ crop['N_percent'] }}</td>
+                        <td>{{ crop['P_percent'] }}</td>
+                        <td>{{ crop['K_percent'] }}</td>
+                        <td>{{ crop['soil_ph'] }}</td>
+                        <td>{{ crop['planting_date'] }}</td>
+                        <td>{{ crop['harvest_date'] }}</td>
+                        <td>{{ crop['crop_suggestion'] }}</td>  
+                        <td>
+                            <div class="action-buttons">
+                                <form action="{{ url_for('delete_crop', aadhar_id=farmer['aadhar_id'], land_id=crop['land_id'], crop_name=crop['crop_name'], planting_date=crop['planting_date']) }}" method="post">
+                                    <button type="submit" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this crop?');">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- JavaScript for Crop Size Validation -->
+<script>
+    document.getElementById("toggle-add-crop").addEventListener("click", function() {
+        const form = document.getElementById("add-crop-form");
+        form.style.display = (form.style.display === "none" || form.style.display === "") ? "block" : "none";
+    });
+
+    document.getElementById("land_id").addEventListener("change", function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const landSize = selectedOption.getAttribute("data-land-size");
+        document.getElementById("land_size").value = landSize;
+    });
+
+    function validateCropSize() {
+        const cropSize = parseFloat(document.getElementById("crop_size").value);
+        const landSize = parseFloat(document.getElementById("land_size").value);
+
+        if (cropSize > landSize) {
+            alert("Crop size cannot exceed land size.");
+            return false;
+        }
+        return true;
+    }
+
+    function toggleForm() {
+        document.getElementById("add-crop-form").style.display = "none";
+    }
+</script>
+{% endblock %}
+

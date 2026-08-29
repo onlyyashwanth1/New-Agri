@@ -1,0 +1,82 @@
+
+{% extends "base4.html" %}
+
+{% block title %}Farmer Loans Taken{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+    <style>
+        /* Loans Taken Table */
+        #loan-taken-table {
+            width: 100%; /* Full width */
+            border-collapse: collapse; /* Combine borders */
+        }
+    
+        #loan-taken-table th,
+        #loan-taken-table td {
+            border: 1px solid #ddd; /* Borders for cells */
+            padding: 8px; /* Padding for cells */
+            text-align: left; /* Align text to left */
+        }
+    
+        #loan-taken-table th {
+            background-color: #f2f2f2; /* Light gray for header */
+        }
+    
+        /* Hover effect for table rows */
+        #loan-taken-table tr:hover {
+            background-color: #f1f1f1; /* Light gray on hover */
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    
+        <!-- Search Bar -->
+        <form id="search-form" action="{{ url_for('farmer_loans_taken') }}" method="GET" class="search-form">
+            <input type="text" name="search_loan_taken" placeholder="Search by Loan Type" class="input-field">
+            <button type="submit" class="search-button">Search</button>
+        </form>
+
+        <!-- Loans Taken Table -->
+        <div class="table-container">
+            <table id="loan-taken-table">
+                <thead>
+                    <tr>
+                        <th>Loan Type</th>
+                        <th>Bank Name</th>
+                        <th>Sanction Date</th>
+                        <th>Due Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in loans_taken %}
+                        <tr>
+                            <td>{{ loan['loan_type'] }}</td>
+                            <td>{{ loan['bank_name'] }}</td>
+                            <td>{{ loan['sanction_date'] }}</td>
+                            <td>{{ loan['due_date'] }}</td>
+                            <td>{{ loan['amount_taken'] }}</td>
+                            <td>{{ loan['status'] }}</td>  <!-- Display Status -->
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    {% block extra_css %} 
+    {% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <div id="navbar"></div>
+
+    <!-- Main Content Area -->
+    <div class="container mx-auto mt-16">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <!-- JavaScript for Navbar -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const navContainer = document.getElementById("navbar");
+            const path = window.location.pathname;
+        
+            const links = getNavbarLinks(path); // Store links in a variable
+        
+            let navbarContent = `
+                <nav class="bg-white shadow fixed w-full top-0 left-0 z-10">
+                    <div class="container mx-auto flex justify-between items-center p-4">
+                        <div class="text-xl font-bold">AgriData Nexus</div>
+                        <button id="toggle-button" class="md:hidden focus:outline-none">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                            </svg>
+                        </button>
+                        <div id="nav-links" class="hidden md:flex space-x-4">
+                            ${links} <!-- for desktop -->
+                        </div>
+                    </div>
+                    <div id="mobile-nav" class="hidden md:hidden flex flex-col space-y-2 p-4">
+                        ${links} <!-- for mobile -->
+                    </div>
+                </nav>
+            `;
+            navContainer.innerHTML = navbarContent;
+        
+            // Mobile toggle functionality
+            const toggleButton = document.getElementById("toggle-button");
+            toggleButton.addEventListener("click", () => {
+                const mobileNav = document.getElementById("mobile-nav");
+                mobileNav.classList.toggle("hidden");
+            });
+        });
+        
+        function getNavbarLinks(path) {
+            if (path === "/" ||  path.includes("/farmer_login")  ||path.includes("/auth_login")  || path.includes("/auth_register") || path.includes("/available_loans")|| path.includes("/available_subsidies") || path.includes("/available_schemes")) {
+                return `
+                    <a href="/" class="text-gray-700 hover:text-blue-500">Home</a>
+                    <a href="/available_loans" class="text-gray-700 hover:text-blue-500">Loans</a>
+                    <a href="/available_subsidies" class="text-gray-700 hover:text-blue-500">Subsidies</a>
+                    <a href="/available_schemes" class="text-gray-700 hover:text-blue-500">Schemes</a>
+                `;
+            } 
+            // Default links if the path doesn't match any known routes
+            return `
+                <a href="/" class="text-gray-700 hover:text-blue-500">Home</a>
+            `;
+        }
+    </script>
+</body>
+</html>

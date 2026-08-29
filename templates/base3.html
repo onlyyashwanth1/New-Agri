@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+    <style>
+        /* Sidebar visibility styling */
+        .sidebar {
+            display: none;
+            z-index: 10; /* Ensure it stays on top */
+        }
+        .sidebar.active {
+            display: block;
+        }
+        
+        .sidebar {
+            top: 75px; /* Margin below the navbar */
+        }
+    
+        @media (min-width: 768px) {
+            .sidebar {
+                display: block;
+            }
+            .content {
+                margin-left: 16rem;
+            }
+        }
+
+        /* Styling for the sidebar links */
+        .link-item {
+            display: block; 
+            padding: 12px 16px; 
+            text-decoration: none; 
+            color: #2d3748; 
+            transition: background-color 0.3s ease, color 0.3s ease;
+            border-radius: 5px; 
+        }
+      
+        .link-item.active {
+            background-color:  #3b82f6; 
+            color: white; 
+            font-weight: bold; 
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-white shadow fixed top-0 left-0 w-full z-10">
+        <div class="max-w-6xl mx-auto flex justify-between items-center py-4 px-6">
+            <div class="flex items-center">
+                <button class="bg-blue-600 text-white py-0.8 px-1.5 rounded md:hidden mr-2" onclick="toggleSidebar()">☰</button>
+                <h1 class="text-xl font-bold text-gray-800">{{farmer.farmer_name}}</h1>
+            </div>
+            <a href="{{ url_for('existingfarmers') }}" class="back-btn bg-blue-600 text-white py-1.5 px-3.5 rounded">Back</a>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar fixed top-16 left-0 h-screen bg-gray-200 w-64 p-4 shadow-md">
+        <ul>
+            <li><a href="{{ url_for('editfarmer', aadhar_id=farmer.aadhar_id) }}" class="link-item">Details</a></li>
+            <li><a href="{{ url_for('manage_lands', aadhar_id=farmer.aadhar_id) }}" class="link-item">Lands</a></li>
+            <li><a href="{{ url_for('manage_crops', aadhar_id=farmer.aadhar_id) }}" class="link-item">Crops</a></li>
+            <li><a href="{{url_for('manage_loans_taken', aadhar_id=farmer.aadhar_id)}}" class="link-item">Loans Taken</a></li>
+            <li><a href="{{url_for('manage_subsidies_taken', aadhar_id=farmer.aadhar_id)}}" class="link-item">Subsidies Taken</a></li>
+            <li><a href="{{url_for('manage_schemes_taken', aadhar_id=farmer.aadhar_id)}}" class="link-item">Schemes Taken</a></li>
+        </ul>
+    </div>
+
+    <!-- Main content area -->
+    <div class="content pt-20 pl-4 md:pl-0 flex justify-center items-center">
+        <div class="w-full max-w-3xl px-4">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script>
+        function goBack() {
+            window.history.back();
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        // Set active link based on click
+        document.querySelectorAll('.link-item').forEach(link => {
+            link.addEventListener('click', function() {
+                document.querySelectorAll('.link-item').forEach(item => item.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+/* Container styling */
+.main-container {
+    max-width: 600px; 
+    background: #fff; 
+    padding: 20px; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
+    margin: 2rem auto; 
+    position: relative;
+}
+
+/* Title styling */
+.title {
+    font-size: 1.5rem; 
+    text-align: center; 
+    margin-bottom: 1.2rem; 
+}
+
+/* Details Group styling */
+.details-group {
+    margin-bottom: 15px; 
+}
+
+/* Detail Item styling */
+.detail-item {
+    margin-bottom: 10px; 
+}
+
+/* Label styling */
+label {
+    font-size: 1rem; 
+    margin-bottom: 5px; 
+    display: block; 
+}
+
+/* Span styling for displaying data */
+span {
+    font-size: 1rem; 
+    padding: 10px; 
+    border: 1px solid #ccc; 
+    border-radius: 8px; 
+    display: block; 
+    background-color: #f9f9f9;
+}
+
+/* Flash messages */
+.flash-messages {
+    margin-bottom: 20px; /* Space below flash messages */
+}
+
+.flash-message {
+    padding: 10px; /* Padding for flash messages */
+    border-radius: 5px; /* Rounded corners */
+    margin-bottom: 10px; /* Space between messages */
+}
+
+.flash-message.success {
+    background-color: #dff0d8; /* Green background for success */
+    color: #3c763d; /* Dark green text */
+}
+
+.flash-message.error {
+    background-color: #f2dede; /* Red background for error */
+    color: #a94442; /* Dark red text */
+}
+
+/* Media Queries for Responsive Design */
+@media (max-width: 768px) {
+    .main-container {
+        padding: 15px;
+        margin: 1rem; /* Reduce margin for smaller devices */
+        max-width: 90%; /* Allow the form to take more width */
+    }
+}
+
+@media (max-width: 480px) {
+    .main-container {
+        max-width: 95%; /* Allow the form to take even more width */
+        margin: 0.5rem; /* Smaller margin on very small devices */
+    }
+
+    span {
+        font-size: 0.85rem; 
+    }
+}

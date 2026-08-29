@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css')}}">
+{% endblock %}
+
+{% block content %}
+    <main class="bg-agri main-content">
+        <div class="main-text">
+            <h1 class="main-title">Welcome to Farmers Database</h1>
+            <div class="button-group">
+                <a href="{{url_for('farmer_login')}}" aria-label="Login">
+                    <button class="btn-login">Farmer</button>
+                </a>
+                <a href="{{url_for('auth_login')}}" aria-label="Login">
+                    <button class="btn-login">Authority</button>
+                </a>
+            </div>
+        </div>
+    </main>
+  <footer class="footer">
+        <div class="help-desk">
+            <h3>Help Desk</h3>
+            <p class="contact-number">Toll-Free: 1830 3483 8403</p>
+        </div>
+    </footer>
+{% endblock %}

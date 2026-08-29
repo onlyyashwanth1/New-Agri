@@ -1,0 +1,74 @@
+
+{% extends "base4.html" %}
+
+{% block title %}Farmer Schemes Taken{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+    <style>
+        /* Subsidies Taken Table */
+        #scheme-taken-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+    
+        #scheme-taken-table th,
+        #scheme-taken-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+    
+        #scheme-taken-table th {
+            background-color: #f2f2f2;
+        }
+    
+        /* Hover effect for table rows */
+        #scheme-taken-table tr:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+     <!-- Search Bar -->
+     <form id="search-form" action="{{ url_for('farmer_schemes_taken') }}" method="GET" class="search-form">
+        <input type="text" name="search_scheme_taken" placeholder="Search by Scheme Name" class="input-field">
+        <button type="submit" class="search-button">Search</button>
+    </form>
+        <!-- Schemes Taken Table -->
+        <div class="table-container">
+            <table id="scheme-taken-table">
+                <thead>
+                    <tr>
+                        <th>Scheme Name</th>
+                        <th>Approval Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scheme in schemes_taken %}
+                        <tr>
+                            <td>{{ scheme.scheme_name }}</td>
+                            <td>{{ scheme.approval_date }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+</div>
+{% endblock %}
+
+

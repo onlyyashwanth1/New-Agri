@@ -1,0 +1,187 @@
+
+{% extends "base2.html" %}
+
+{% block title %}Manage Loans{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+<style>
+    /* Add Loan Form */
+    .add-loan-form {
+        margin-bottom: 20px;
+    }
+    /* Loan Table */
+    #loan-table {
+        width: 100%;
+        border-collapse: collapse; /* Ensure borders are combined */
+    }
+
+    #loan-table th,
+    #loan-table td {
+        border: 1px solid #ddd; /* Add borders between columns */
+        padding: 8px; /* Ensure padding for cells */
+        text-align: left; /* Align text to the left */
+    }
+
+    #loan-table th {
+        background-color: #f2f2f2; /* Light gray for header */
+    }
+
+    /* Hover effect for table rows */
+    #loan-table tr:hover {
+        background-color: #f1f1f1; /* Light grey on hover */
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+
+    <!-- Flash Messages for Feedback -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Search Bar -->
+    <form id="search-form" method="GET" action="{{ url_for('manage_loans') }}" class="search-form">
+        <input type="text" name="loan_type" placeholder="Search by Loan Type" class="input-field" required>
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+    <!-- Add Loan Button -->
+    <button id="toggle-add-loan" class="add-button">Add Loan</button>
+
+    <!-- Add Loan Form (Initially Hidden) -->
+    <form id="add-loan-form" method="POST" action="{{ url_for('add_loan') }}" class="add-loan-form" style="display:none;">
+        <h2 class="form-title">Register New Loan</h2>
+
+        <!-- Loan Type -->
+        <div class="form-group">
+            <label for="loan_type">Loan Type</label>
+            <input type="text" id="loan_type" name="loan_type" required placeholder="Enter Loan Type" />
+        </div>
+
+        <!-- Description -->
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" required placeholder="Enter Description"></textarea>
+        </div>
+
+        <!-- Eligibility -->
+        <div class="form-group">
+            <label for="eligibility">Eligibility</label>
+            <textarea id="eligibility" name="eligibility" required placeholder="Enter Eligibility"></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="submit-button" aria-label="Add Loan">Add Loan</button>
+        <button type="button" class="cancel-button" onclick="toggleForm()">Cancel</button>
+    </form>
+
+    <!-- Loan Table -->
+    <div class="table-container">
+        <table id="loan-table">
+            <thead>
+                <tr>
+                    <th>Loan Type</th>
+                    <th>Description</th>
+                    <th>Eligibility</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                <tr data-id="{{ loan['loan_id'] }}">
+                    <td>{{ loan['loan_type'] }}</td>
+                    <td contenteditable="true" data-field="description">{{ loan['description'] }}</td>
+                    <td contenteditable="true" data-field="eligibility">{{ loan['eligibility'] }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <!-- Update Button -->
+                            <form action="{{ url_for('update_loan', id=loan['loan_id']) }}" method="post" class="update-form" onsubmit="return handleUpdate(event, {{ loan['loan_id'] }})">
+                                <button type="submit" class="action-button update-button">Update</button>
+                            </form>
+                            
+                            <!-- Delete Button -->
+                            <form action="{{ url_for('delete_loan', loan_id=loan['loan_id']) }}" method="post">
+                                <button type="submit" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this loan?');">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- JavaScript Section -->
+<script>
+    // Toggle visibility of the add loan form
+    document.getElementById("toggle-add-loan").addEventListener("click", function() {
+        const form = document.getElementById("add-loan-form");
+        form.style.display = (form.style.display === "none" || form.style.display === "") ? "block" : "none";
+    });
+
+    function toggleForm() {
+        const form = document.getElementById("add-loan-form");
+        form.style.display = "none";
+    }
+
+    function handleUpdate(event, id) {
+        event.preventDefault(); // Prevent default form submission
+        
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        
+        if (!row) {
+            console.error(`Row with ID ${id} not found`);
+            return;
+        }
+        
+        const cells = row.querySelectorAll('td[contenteditable="true"]');
+        
+        if (cells.length !== 2) { 
+            console.error('Expected 2 editable cells but found:', cells.length);
+            return;
+        }
+        
+        const formData = new FormData();
+        
+        const description = cells[0].innerText.trim();
+        const eligibility = cells[1].innerText.trim();
+        
+        if (!description || !eligibility) {
+            alert('All fields must be filled!');
+            return;
+        }
+        
+        formData.append('description', description);
+        formData.append('eligibility', eligibility);
+        
+        fetch(`/update_loan/${id}`, {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('Update successful!');
+                location.reload();  // Reload the page to see updated data
+            } else {
+                console.error('Response not OK:', response);
+                alert('Error updating loan');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('There was an error updating the loan. Please try again.');
+        });
+    }
+</script>
+{% endblock %}
