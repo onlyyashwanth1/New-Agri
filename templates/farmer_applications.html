@@ -20,12 +20,6 @@
     {% endwith %}
 
 
-        <div class="flex flex-wrap gap-3 mb-6 p-4 bg-gray-50 rounded border">
-            <span class="font-semibold text-gray-700 py-2">Apply for:</span>
-            <a href="{{ url_for('available_schemes') }}" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-semibold">Scheme</a>
-            <a href="{{ url_for('available_subsidies') }}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold">Subsidy</a>
-            <a href="{{ url_for('available_loans') }}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-semibold">Loan</a>
-        </div>
     {% if not applications %}
         <div class="text-center py-10 bg-gray-50 rounded border border-dashed border-gray-300">
             <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
