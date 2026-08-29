@@ -355,7 +355,7 @@ def farmer_weather():
             'max': daily.get('temperature_2m_max', [])[i],
             'rain': daily.get('precipitation_sum', [])[i],
             'rain_probability': daily.get('precipitation_probability_max', [])[i],
-            'et0': daily.get('reference_evapotranspiration_sum', [])[i]
+            'et0': daily.get('et0_fao_evapotranspiration', [None] * len(times))[i]
         })
 
     weather_data = {
