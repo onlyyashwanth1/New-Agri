@@ -1166,153 +1166,122 @@ def add_crop(aadhar_id):
         return redirect(url_for('auth_login'))
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        land_id = request.form['land_id']
+        crop_name = request.form['crop_name'].strip()
+        crop_size = float(request.form['crop_size'])
+        N_percent = float(request.form['N_percent'])
+        P_percent = float(request.form['P_percent'])
+        K_percent = float(request.form['K_percent'])
+        soil_ph = float(request.form['soil_ph'])
+        planting_date = request.form['planting_date']
+        harvest_date = request.form.get('harvest_date') or None
+        crop_status = request.form.get('crop_status', 'new')
 
-    land_id = request.form['land_id']
-    crop_name = request.form['crop_name']
-    crop_size = float(request.form['crop_size'])
-    N_percent = float(request.form['N_percent'])
-    P_percent = float(request.form['P_percent'])
-    K_percent = float(request.form['K_percent'])
-    soil_ph = float(request.form['soil_ph'])
-    planting_date = request.form['planting_date']
-    harvest_date = request.form.get('harvest_date') or None
-    crop_status = request.form.get('crop_status', 'new')
-    is_ongoing = crop_status == 'ongoing'
-
-    if not (0 <= N_percent <= 100):
-        flash("Invalid Nitogen Percent value. Value sholud be in between 0 and 100", 'error')
-        return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
-    if not (0 <= P_percent <= 100):
-        flash("Invalid Phosphorus Percent value. Value sholud be in between 0 and 100", 'error')
-        return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
-    if not (0 <= K_percent <= 100):
-        flash("Invalid Pottasium Percent value. Value sholud be in between 0 and 100", 'error')
-        return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
-    if not (1 <= soil_ph <= 14):
-        flash("Invalid soil pH value. Value sholud be in between 1 and 14", 'error')
-        return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
-    
-    
-    # Get land size
-    cursor.execute("SELECT land_size FROM lands WHERE land_id = %s", (land_id,))
-    land = cursor.fetchone()
-
-    planting_date_obj = datetime.strptime(planting_date, '%Y-%m-%d').date()
-    today = datetime.today().date()
-    if is_ongoing and planting_date_obj > today:
-        flash("An ongoing crop must have a planting date on or before today.", "error")
-        return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
-
-    if harvest_date:
-        harvest_date_obj = datetime.strptime(harvest_date, '%Y-%m-%d').date()
-        if planting_date_obj >= harvest_date_obj:
-            flash("Planting date must be earlier than harvest date.", "error")
+        if not (0 <= N_percent <= 100) or not (0 <= P_percent <= 100) or not (0 <= K_percent <= 100):
+            flash("N, P and K values must be between 0 and 100.", 'error')
             return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
-    else:
-        harvest_date_obj = estimate_harvest_date(crop_name, planting_date_obj)
-        harvest_date = harvest_date_obj.strftime('%Y-%m-%d')
+        if not (1 <= soil_ph <= 14):
+            flash("Soil pH must be between 1 and 14.", 'error')
+            return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
 
-    # Check if the crop already exists
-    cursor.execute("""
-        SELECT * FROM crops 
-        WHERE land_id = %s AND crop_name = %s AND planting_date = %s AND aadhar_id = %s
-    """, (land_id, crop_name, planting_date, aadhar_id))
-    existing_crop = cursor.fetchone()
+        planting_date_obj = datetime.strptime(planting_date, '%Y-%m-%d').date()
+        today = datetime.today().date()
+        if crop_status == 'ongoing' and planting_date_obj > today:
+            flash("An ongoing crop must have a planting date on or before today.", "error")
+            return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
 
-    if existing_crop:
-        flash("A crop with this name and planting date already exists for this farmer.", 'error')
-        return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
-    if land:
-        land_size = land['land_size']
+        if harvest_date:
+            harvest_date_obj = datetime.strptime(harvest_date, '%Y-%m-%d').date()
+            if planting_date_obj >= harvest_date_obj:
+                flash("Planting date must be earlier than harvest date.", "error")
+                return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
+        else:
+            harvest_date_obj = estimate_harvest_date(crop_name, planting_date_obj)
+            harvest_date = harvest_date_obj.strftime('%Y-%m-%d')
 
-        # Check if the total crop size exceeds the land size
+        cursor.execute("SELECT land_size FROM lands WHERE land_id = %s AND aadhar_id = %s AND deleted = FALSE",
+                       (land_id, aadhar_id))
+        land = cursor.fetchone()
+        if not land:
+            flash("Selected land was not found.", 'error')
+            return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
+
         cursor.execute("""
             SELECT SUM(crop_size) AS total_crop_size
-            FROM crops 
-            WHERE land_id = %s AND aadhar_id = %s and crop_active=True
+            FROM crops
+            WHERE land_id = %s AND aadhar_id = %s AND crop_active = TRUE
         """, (land_id, aadhar_id))
-        result = cursor.fetchone()
-        total_crop_size = result['total_crop_size'] or 0
+        total_crop_size = cursor.fetchone()['total_crop_size'] or 0
 
-        if float(total_crop_size) + float(crop_size) > float(land_size):
-            flash(f"Cannot add crop. Total crop size exceeds land size ({land_size} acres).", 'error')
+        if float(total_crop_size) + crop_size > float(land['land_size']):
+            flash(f"Cannot add crop. Total crop size exceeds land size ({land['land_size']} acres).", 'error')
             return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
-        
 
-    try:
         cursor.execute("""
-            INSERT INTO crops (land_id, aadhar_id, crop_name, crop_size, N_percent, P_percent, K_percent, soil_ph, planting_date, harvest_date, crop_suggestion)
+            SELECT 1 FROM crops
+            WHERE land_id = %s AND crop_name = %s AND planting_date = %s AND aadhar_id = %s
+        """, (land_id, crop_name, planting_date, aadhar_id))
+        if cursor.fetchone():
+            flash("A crop with this name and planting date already exists for this farmer.", 'error')
+            return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
+
+        cursor.execute("""
+            INSERT INTO crops
+            (land_id, aadhar_id, crop_name, crop_size, N_percent, P_percent, K_percent,
+             soil_ph, planting_date, harvest_date, crop_suggestion)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (land_id, aadhar_id, crop_name, crop_size, N_percent, P_percent, K_percent, soil_ph, planting_date, harvest_date, None))
+        """, (land_id, aadhar_id, crop_name, crop_size, N_percent, P_percent, K_percent,
+              soil_ph, planting_date, harvest_date, None))
         mysql.connection.commit()
 
+        # Keep the existing ML suggestion feature, but never let an external API
+        # failure prevent the crop from being registered.
         try:
-            # Fetch climatology data and predict crop
-        cursor.execute("SELECT location FROM lands WHERE land_id = %s", (land_id,))
-        land = cursor.fetchone()
-
-        if land:
-            location = land['location']
-            api_key = "0b5f1c161935d39a4bd7dcfaa506791e"
-            geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={location}&limit=1&appid={api_key}"
-            geo_response = requests.get(geo_url)
-
-            if geo_response.status_code == 200:
-                geo_data = geo_response.json()
-                if geo_data:
-                    lat = geo_data[0]["lat"]
-                    lon = geo_data[0]["lon"]
-
-                    # Fetch climatology data from NASA POWER API
+            cursor.execute("SELECT location FROM lands WHERE land_id = %s", (land_id,))
+            land_location = cursor.fetchone()
+            if land_location:
+                api_key = "0b5f1c161935d39a4bd7dcfaa506791e"
+                geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={land_location['location']}&limit=1&appid={api_key}"
+                geo_response = requests.get(geo_url, timeout=5)
+                if geo_response.status_code == 200 and geo_response.json():
+                    geo_data = geo_response.json()[0]
                     power_url = (
                         f"https://power.larc.nasa.gov/api/temporal/climatology/point?"
-                        f"parameters=T2M,PRECTOTCORR,RH2M&community=ag&longitude={lon}&latitude={lat}&start=1981&end=2010&format=JSON"
+                        f"parameters=T2M,PRECTOTCORR,RH2M&community=ag&longitude={geo_data['lon']}&latitude={geo_data['lat']}&start=1981&end=2010&format=JSON"
                     )
-                    power_response = requests.get(power_url)
-
+                    power_response = requests.get(power_url, timeout=5)
                     if power_response.status_code == 200:
                         power_data = power_response.json()
-                        avg_temperature = power_data['properties']['parameter'].get('T2M', {}).get('ANN', None)
-                        avg_humidity = power_data['properties']['parameter'].get('RH2M', {}).get('ANN', None)
-                        avg_precipitation = power_data['properties']['parameter'].get('PRECTOTCORR', {}).get('ANN', None)
-
-                        # Prepare input data for crop prediction
-                        input_data = np.array([[N_percent, P_percent, K_percent, avg_temperature, avg_humidity, soil_ph, avg_precipitation*100]])
-                        
-
-                        # Predict the crop using the pre-trained model
-                        predicted_class = model.predict(input_data)
-                        crop_labels = [
-                            'rice', 'maize', 'chickpea', 'kidneybeans', 'pigeonpeas', 'mothbeans',
-                            'mungbean', 'blackgram', 'lentil', 'pomegranate', 'banana', 'mango',
-                            'grapes', 'watermelon', 'muskmelon', 'apple', 'orange', 'papaya',
-                            'coconut', 'cotton', 'jute', 'coffee'
-                        ]
-                        predicted_label = crop_labels[predicted_class[0]]
-                        cursor.execute("""
-                            UPDATE crops SET crop_suggestion = %s
-                            WHERE land_id = %s AND aadhar_id = %s AND crop_name = %s AND planting_date = %s
-                        """, (predicted_label, land_id, aadhar_id, crop_name, planting_date))
-                        mysql.connection.commit()
-                        flash(f"Crop added successfully. ML suggestion: {predicted_label}", 'success')
-                    else:
-                        flash(f"Error fetching climate data from NASA: {power_response.status_code}", 'error')
-                else:
-                    flash("No geolocation data found for the location.", 'error')
-            else:
-                flash(f"Error fetching geolocation data from OpenWeatherMap: {geo_response.status_code}", 'error')
-
-            else:
-                flash("Crop added successfully. Crop suggestion could not be generated right now.", 'success')
+                        avg_temperature = power_data['properties']['parameter'].get('T2M', {}).get('ANN')
+                        avg_humidity = power_data['properties']['parameter'].get('RH2M', {}).get('ANN')
+                        avg_precipitation = power_data['properties']['parameter'].get('PRECTOTCORR', {}).get('ANN')
+                        if all(v is not None for v in (avg_temperature, avg_humidity, avg_precipitation)):
+                            input_data = np.array([[N_percent, P_percent, K_percent, avg_temperature,
+                                                     avg_humidity, soil_ph, avg_precipitation * 100]])
+                            predicted_class = model.predict(input_data)
+                            crop_labels = [
+                                'rice', 'maize', 'chickpea', 'kidneybeans', 'pigeonpeas', 'mothbeans',
+                                'mungbean', 'blackgram', 'lentil', 'pomegranate', 'banana', 'mango',
+                                'grapes', 'watermelon', 'muskmelon', 'apple', 'orange', 'papaya',
+                                'coconut', 'cotton', 'jute', 'coffee'
+                            ]
+                            predicted_label = crop_labels[predicted_class[0]]
+                            cursor.execute("""
+                                UPDATE crops SET crop_suggestion = %s
+                                WHERE land_id = %s AND aadhar_id = %s AND crop_name = %s AND planting_date = %s
+                            """, (predicted_label, land_id, aadhar_id, crop_name, planting_date))
+                            mysql.connection.commit()
         except Exception as prediction_error:
             print(f"Crop suggestion unavailable: {prediction_error}")
-            flash("Crop added successfully. Crop suggestion could not be generated right now.", 'success')
 
-    except MySQLdb.MySQLError as e:
+        flash(f"Crop added successfully. Harvest date: {harvest_date}.", 'success')
+    except (ValueError, MySQLdb.MySQLError) as e:
         mysql.connection.rollback()
-        flash(f'Error storing data: {e}', 'error')
+        flash(f'Error storing crop: {e}', 'error')
     finally:
         cursor.close()
+
     return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
 
 
