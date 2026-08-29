@@ -115,10 +115,18 @@
         <!-- Harvest Date (Optional) -->
         <div class="form-group">
             <label for="harvest_date">Harvest Date </label>
-            <input type="date" name="harvest_date" required id="harvest_date">
+            <input type="date" name="harvest_date" id="harvest_date">
+        <small id="harvest-help">Leave blank to estimate automatically from the crop type.</small>
         </div>
 
         <!-- Crop Suggestion (Optional) -->
+        <div class="form-group">
+            <label for="crop_status">Crop Status</label>
+            <select name="crop_status" id="crop_status" required>
+                <option value="new">New / Planned</option>
+                <option value="ongoing">Ongoing</option>
+            </select>
+        </div>
         <div class="form-group">
             <label for="crop_suggestion">Crop Suggestion (Optional)</label>
             <input type="text" name="crop_suggestion" id="crop_suggestion">
@@ -146,6 +154,7 @@
                     <th>Soil pH</th>
                     <th>Planting Date</th>
                     <th>Harvest Date</th>
+                    <th>Status</th>
                     <th>Crop Suggestion</th>
                     <th>Actions</th>
                 </tr>
@@ -162,6 +171,7 @@
                         <td>{{ crop['soil_ph'] }}</td>
                         <td>{{ crop['planting_date'] }}</td>
                         <td>{{ crop['harvest_date'] }}</td>
+                        <td><strong>{{ crop['status'] }}</strong></td>
                         <td>{{ crop['crop_suggestion'] }}</td>  
                         <td>
                             <div class="action-buttons">
@@ -182,6 +192,14 @@
     document.getElementById("toggle-add-crop").addEventListener("click", function() {
         const form = document.getElementById("add-crop-form");
         form.style.display = (form.style.display === "none" || form.style.display === "") ? "block" : "none";
+    });
+
+    document.getElementById("crop_status").addEventListener("change", function() {
+        const ongoing = this.value === "ongoing";
+        const harvest = document.getElementById("harvest_date");
+        harvest.required = false;
+        harvest.disabled = ongoing;
+        if (ongoing) harvest.value = "";
     });
 
     document.getElementById("land_id").addEventListener("change", function() {
