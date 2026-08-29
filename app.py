@@ -611,7 +611,15 @@ def available_loans():
     else:
         cursor.execute("SELECT * FROM loans WHERE deleted = FALSE")
         loans = cursor.fetchall()
-    
+
+    farmer_apps = {}
+    if 'aadhar_id' in session:
+        cursor.execute("SELECT item_name, status FROM applications WHERE aadhar_id = %s AND item_type = 'loan'", (session['aadhar_id'],))
+        for app_rec in cursor.fetchall():
+            farmer_apps[app_rec['item_name']] = app_rec['status']
+    for loan in loans:
+        loan['application_status'] = farmer_apps.get(loan['loan_type'])
+
     cursor.close()
     return render_template('available_loans.html', loans=loans)
 
@@ -702,7 +710,7 @@ def apply_item(item_type, item_name):
     farmer = cursor.fetchone()
     
     # 2. Fetch and calculate total land size
-    cursor.execute("SELECT land_size FROM lands WHERE aadhar_id = %s AND deleted = FALSE", (aadhar_id,))
+    cursor.execute("SELECT land_id, location, land_size FROM lands WHERE aadhar_id = %s AND deleted = FALSE ORDER BY land_id", (aadhar_id,))
     lands = cursor.fetchall()
     total_land_size = sum(float(l['land_size']) for l in lands)
     
@@ -724,6 +732,9 @@ def apply_item(item_type, item_name):
     elif item_type == 'scheme':
         cursor.execute("SELECT description, eligibility, last_date_apply FROM schemes WHERE scheme_name = %s AND deleted = FALSE", (item_name,))
         item_details = cursor.fetchone()
+    elif item_type == 'loan':
+        cursor.execute("SELECT description, eligibility FROM loans WHERE loan_type = %s AND deleted = FALSE", (item_name,))
+        item_details = cursor.fetchone()
         
     cursor.close()
     
@@ -736,6 +747,7 @@ def apply_item(item_type, item_name):
         farmer=farmer,
         total_land_size=total_land_size,
         recent_crops=recent_crops,
+        lands=lands,
         item_type=item_type,
         item_name=item_name,
         item_details=item_details
@@ -751,6 +763,7 @@ def submit_application():
     aadhar_id = session['aadhar_id']
     item_type = request.form.get('item_type')
     item_name = request.form.get('item_name')
+    land_id = request.form.get('land_id') or None
     
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
@@ -767,10 +780,22 @@ def submit_application():
         return redirect(url_for('farmer_applications'))
         
     try:
+        if item_type not in ('scheme', 'subsidy', 'loan'):
+            flash('Invalid application type.', 'error')
+            cursor.close()
+            return redirect(url_for('farmer_applications'))
+
+        if land_id:
+            cursor.execute("SELECT land_id FROM lands WHERE land_id = %s AND aadhar_id = %s AND deleted = FALSE", (land_id, aadhar_id))
+            if not cursor.fetchone():
+                flash('Selected land does not belong to this farmer.', 'error')
+                cursor.close()
+                return redirect(url_for('farmer_applications'))
+
         cursor.execute("""
             INSERT INTO applications (aadhar_id, land_id, item_type, item_name, status)
-            VALUES (%s, NULL, %s, %s, 'pending')
-        """, (aadhar_id, item_type, item_name))
+            VALUES (%s, %s, %s, %s, 'pending')
+        """, (aadhar_id, land_id, item_type, item_name))
         mysql.connection.commit()
         flash('Application submitted successfully!', 'success')
     except Exception as e:
