@@ -4,6 +4,7 @@ import sqlite3
 import re
 import os
 import bcrypt
+import requests as real_requests
 
 # --- DUMMY MODULE INJECTIONS ---
 
@@ -170,16 +171,18 @@ class MockResponse:
 class MockRequests:
     @staticmethod
     def get(url, *args, **kwargs):
-        if "openstreetmap" in url or "api.openweathermap.org/geo" in url:
-            return MockResponse([{"lat": "17.3850", "lon": "78.4867"}])
-        elif "api.openweathermap.org/data/2.5/weather" in url:
+        # The preview keeps MySQL mocked, but uses the real geocoder and Open-Meteo
+        # so the Weather & Irrigation page shows genuine live data after Proceed.
+        if "openstreetmap.org" in url or "api.open-meteo.com" in url:
+            return real_requests.get(url, *args, **kwargs)
+        if "api.openweathermap.org" in url:
             return MockResponse({
                 "main": {"temp": 40.5, "humidity": 18.0},
                 "rain": {"1h": 0.0},
                 "wind": {"speed": 2.5},
                 "weather": [{"description": "clear sky"}]
             })
-        elif "power.larc.nasa.gov" in url:
+        if "power.larc.nasa.gov" in url:
             return MockResponse({
                 "properties": {
                     "parameter": {
@@ -244,7 +247,7 @@ def init_db(db_path):
         # Default Farmer
         cursor.execute(
             "INSERT INTO farmers (farmer_name, date_of_birth, gender, phone_no, address, aadhar_id, first_login) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            ("John Doe", "1980-05-15", "Male", "9876543210", "123 Green Valley Farm", "123412341234", 0)
+            ("John Doe", "1980-05-15", "Male", "9876543210", "Hyderabad, Telangana, India", "123412341234", 0)
         )
         # Default Land
         cursor.execute(
