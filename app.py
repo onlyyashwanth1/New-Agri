@@ -282,8 +282,8 @@ def farmer_weather():
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={lat}&longitude={lon}"
         "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m"
-        "&hourly=precipitation_probability,precipitation,rain,reference_evapotranspiration,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm"
-        "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,reference_evapotranspiration_sum"
+        "&hourly=precipitation_probability,precipitation,rain,et0_fao_evapotranspiration"
+        "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,et0_fao_evapotranspiration"
         "&forecast_days=5&timezone=auto"
     )
     try:
@@ -303,8 +303,8 @@ def farmer_weather():
     crop_context = ", ".join(crop_names) if crop_names else "No active crop registered"
     rain_next_24 = sum(float(x or 0) for x in hourly.get('precipitation', [])[:24])
     rain_next_48 = sum(float(x or 0) for x in hourly.get('precipitation', [])[:48])
-    et0_next_24 = sum(float(x or 0) for x in hourly.get('reference_evapotranspiration', [])[:24])
-    soil_moisture = next((x for x in hourly.get('soil_moisture_0_to_1cm', []) if x is not None), None)
+    et0_next_24 = sum(float(x or 0) for x in hourly.get('et0_fao_evapotranspiration', [])[:24])
+    soil_moisture = next((x for x in hourly.get('soil_moisture_0_to_10cm', []) if x is not None), None)
     temp = float(current['temperature_2m'])
     humidity = float(current['relative_humidity_2m'])
     current_rain = float(current.get('rain', 0) or 0)
