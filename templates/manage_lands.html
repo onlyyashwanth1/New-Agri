@@ -100,8 +100,9 @@
                 {% for land in lands %}
                     <tr data-id="{{ land['land_id'] }}">
                         <td>{{ land['land_id'] }}</td>
-                        {% set parts = (land['location'] or '').split(',') %}
-                        {% set pincode = parts | select('match', '^\\s*[0-9]{6}\\s*
+                        <td contenteditable="true" data-field="land_city">{{ land['location_parts']['city'] }}</td>
+                        <td contenteditable="true" data-field="land_pincode">{{ land['location_parts']['pincode'] }}</td>
+                        <td contenteditable="true" data-field="land_state">{{ land['location_parts']['state'] }}</td>
                         <td contenteditable="true" data-field="soil_type">{{ land['soil_type'] }}</td>
                         <td contenteditable="true" data-field="land_size">{{ land['land_size'] }}</td>
                         <td>
@@ -109,7 +110,6 @@
                                 <form action="{{ url_for('update_land', aadhar_id=farmer['aadhar_id'], land_id=land['land_id']) }}" method="post" onsubmit="return handleUpdate(event, '{{ farmer['aadhar_id'] }}', '{{ land['land_id'] }}');">
                                     <button type="submit" class="action-button update-button">Update</button>
                                 </form>
-
                                 <form action="{{ url_for('delete_land', aadhar_id=farmer['aadhar_id'], land_id=land['land_id']) }}" method="post">
                                     <button type="submit" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this land?');">Delete</button>
                                 </form>
