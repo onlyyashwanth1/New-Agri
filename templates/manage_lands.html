@@ -136,54 +136,36 @@
     }
 
     function handleUpdate(event, aadharId, landId) {
-       event.preventDefault(); // Prevent form submission
-    
-    // Locate the row with the specific land ID
-    const row = document.querySelector(`tr[data-id="${landId}"]`);
-    if (!row) {
-        console.error(`Row with ID ${landId} not found`);
-        return;
-    }
+        event.preventDefault();
 
-    // Get field values
-    const location = row.querySelector('td[data-field="location"]').innerText.trim();
-    const soilType = row.querySelector('td[data-field="soil_type"]').innerText.trim();
-    const landSize = row.querySelector('td[data-field="land_size"]').innerText.trim();
+        const row = document.querySelector(`tr[data-id="${landId}"]`);
+        if (!row) return;
 
-    // Validate fields
-    if (!city || !pincode || !/^\d{6}$/.test(pincode) || !state || !soilType || !landSize) {
-        alert('All fields (Location, Soil Type, and Land Size) must be filled!');
-        return;
-    }
+        const city = row.querySelector('td[data-field="land_city"]').innerText.trim();
+        const pincode = row.querySelector('td[data-field="land_pincode"]').innerText.trim();
+        const state = row.querySelector('td[data-field="land_state"]').innerText.trim();
+        const soilType = row.querySelector('td[data-field="soil_type"]').innerText.trim();
+        const landSize = row.querySelector('td[data-field="land_size"]').innerText.trim();
 
-    // Collect data to send to the server
-    const formData = new FormData();
-    formData.append('land_city', city);
-    formData.append('land_pincode', pincode);
-    formData.append('land_state', state);
-    formData.append('soil_type', soilType);
-    formData.append('land_size', landSize);
-
-    // Send POST request to update land information
-    fetch(`/update_land/${aadharId}/${landId}`, {
-        method: 'POST',
-        body: formData,
-    })
-    .then(response => {
-        if (response.ok) {
-            console.log('Update successful!');
-            location.reload(); // Reload the page to show updated data
-        } else {
-            console.error('Response not OK:', response);
-            alert('Error updating land information');
+        if (!city || !/^\d{6}$/.test(pincode) || !state || !soilType || !landSize) {
+            alert('Please provide a valid City, 6-digit Pincode, State, Soil Type, and Land Size.');
+            return;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        /*alert('There was an error updating the land information. Please try again.');*/
-    });
-}
 
+        const formData = new FormData();
+        formData.append('land_city', city);
+        formData.append('land_pincode', pincode);
+        formData.append('land_state', state);
+        formData.append('soil_type', soilType);
+        formData.append('land_size', landSize);
+
+        fetch(`/update_land/${aadharId}/${landId}`, { method: 'POST', body: formData })
+            .then(response => {
+                if (response.ok) window.location.reload();
+                else alert('Error updating land information.');
+            })
+            .catch(() => alert('Error updating land information.'));
+    }
 </script>
 {% endblock %}
 ) | list | first | default('', true) %}
