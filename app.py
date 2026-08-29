@@ -206,168 +206,186 @@ def farmer_login():
 
     return render_template('farmer_login.html')
 
-@app.route('/farmer_weather')
+@app.route('/farmer_weather', methods=['GET', 'POST'])
 def farmer_weather():
     if 'aadhar_id' not in session:
         flash('You need to log in first.', 'error')
         return redirect(url_for('farmer_login'))
-        
+
+    # GET only shows the page. No external weather/API calls happen until Proceed is clicked.
+    if request.method == 'GET':
+        return render_template('farmer_weather.html', weather=None, forecast=None, suggestions=None, farmer=None, crop_context=None)
+
     aadhar_id = session['aadhar_id']
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
-    # 1. Fetch farmer details
-    cursor.execute("SELECT * FROM farmers WHERE aadhar_id = %s", (aadhar_id,))
-    farmer = cursor.fetchone()
-    
-    # 2. Fetch farmer's lands
-    cursor.execute("SELECT * FROM lands WHERE aadhar_id = %s AND deleted = FALSE", (aadhar_id,))
-    lands = cursor.fetchall()
-    
-    # 3. Fetch farmer's active crops
-    cursor.execute("SELECT * FROM crops WHERE aadhar_id = %s AND crop_active = TRUE", (aadhar_id,))
-    active_crops = cursor.fetchall()
-    
-    # 4. Resolve coordinates of farmer's home address
-    address = farmer['address']
-    lat, lon = 17.3850, 78.4867 # default
-    
+
+    try:
+        cursor.execute("SELECT * FROM farmers WHERE aadhar_id = %s", (aadhar_id,))
+        farmer = cursor.fetchone()
+        cursor.execute("SELECT * FROM lands WHERE aadhar_id = %s AND deleted = FALSE", (aadhar_id,))
+        lands = cursor.fetchall()
+        cursor.execute("""
+            SELECT * FROM crops
+            WHERE aadhar_id = %s AND crop_active = TRUE
+            ORDER BY planting_date DESC
+        """, (aadhar_id,))
+        active_crops = cursor.fetchall()
+    finally:
+        cursor.close()
+
+    if not farmer:
+        flash('Farmer details could not be found.', 'error')
+        return redirect(url_for('farmer_login'))
+
+    # Resolve the farmer's registered address only after the user clicks Proceed.
     import requests
-    api_key = "0b5f1c161935d39a4bd7dcfaa506791e"
-    
     import urllib.parse
-    # Nominatim Geocoding API
+    address = farmer.get('address') or ''
+    if not address.strip():
+        return render_template('farmer_weather.html', weather=None, forecast=None,
+                               suggestions=None, farmer=farmer, crop_context=None,
+                               error='A registered farmer address is required to fetch weather information.')
+
     geo_url = f"https://nominatim.openstreetmap.org/search?q={urllib.parse.quote(address)}&format=json&limit=1"
     headers = {'User-Agent': 'AgriNexus-App/1.0'}
     try:
-        geo_resp = requests.get(geo_url, headers=headers, timeout=5)
-        if geo_resp.status_code == 200 and geo_resp.json():
-            geo_data = geo_resp.json()
-            lat = float(geo_data[0]["lat"])
-            lon = float(geo_data[0]["lon"])
+        geo_resp = requests.get(geo_url, headers=headers, timeout=8)
+        geo_resp.raise_for_status()
+        geo_results = geo_resp.json()
+        if not geo_results:
+            raise ValueError('The registered address could not be located.')
+        lat = float(geo_results[0]['lat'])
+        lon = float(geo_results[0]['lon'])
+        resolved_location = geo_results[0].get('display_name', address)
     except Exception as e:
         print(f"Error geocoding farmer address: {e}")
-        
-    # 5. Fetch current weather for resolved coordinates
-    weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
-    temp, humidity, rain, wind_speed, weather_desc = 25.0, 60.0, 0.0, 3.0, "clear sky"
-    
+        return render_template('farmer_weather.html', weather=None, forecast=None,
+                               suggestions=None, farmer=farmer, crop_context=None,
+                               error='We could not locate your registered address. Please ask the authority to verify it.')
+
+    # Open-Meteo: live/current conditions + 5-day forecast + ET0/soil indicators.
+    weather_url = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={lat}&longitude={lon}"
+        "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,"
+        "weather_code,wind_speed_10m,wind_direction_10m"
+        "&hourly=precipitation_probability,precipitation,rain,reference_evapotranspiration,"
+        "soil_moisture_0_to_1cm,soil_moisture_1_to_3cm"
+        "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,"
+        "precipitation_probability_max,reference_evapotranspiration_sum"
+        "&forecast_days=5&timezone=auto"
+    )
+
     try:
-        w_resp = requests.get(weather_url, timeout=5)
-        if w_resp.status_code == 200:
-            w_data = w_resp.json()
-            temp = w_data['main']['temp']
-            humidity = w_data['main']['humidity']
-            rain = w_data.get('rain', {}).get('1h', 0.0)
-            wind_speed = w_data.get('wind', {}).get('speed', 3.0)
-            weather_desc = w_data['weather'][0]['description']
-        else:
-            # NASA Power API fallback
-            power_url = (
-                f"https://power.larc.nasa.gov/api/temporal/climatology/point?"
-                f"parameters=T2M,PRECTOTCORR,RH2M&community=ag&longitude={lon}&latitude={lat}&start=1981&end=2010&format=JSON"
-            )
-            power_resp = requests.get(power_url, timeout=5)
-            if power_resp.status_code == 200:
-                power_data = power_resp.json()
-                temp = power_data['properties']['parameter'].get('T2M', {}).get('ANN', 25.0)
-                humidity = power_data['properties']['parameter'].get('RH2M', {}).get('ANN', 60.0)
-                rain = power_data['properties']['parameter'].get('PRECTOTCORR', {}).get('ANN', 0.05) * 100
+        w_resp = requests.get(weather_url, timeout=12)
+        w_resp.raise_for_status()
+        w_data = w_resp.json()
+        current = w_data['current']
+        hourly = w_data.get('hourly', {})
+        daily = w_data.get('daily', {})
     except Exception as e:
-        print(f"Error fetching current weather: {e}")
-        
-    # 6. Generate AI Agricultural Advisory Recommendations
-    ai_suggestions = []
-    
-    # Analyze soil types
-    soil_types = list(set(l['soil_type'].lower() for l in lands if l['soil_type']))
-    soil_str = ", ".join(soil_types) if soil_types else "standard soil"
-    
-    # Irrigation advice
-    if rain > 5.0:
-        ai_suggestions.append({
-            'category': 'irrigation',
-            'title': '🌧️ Natural Irrigation active',
-            'text': f"Significant rainfall ({rain} mm/h) detected in your region. Suspend all active irrigation systems to prevent waterlogging and conserve water.",
-            'badge': 'bg-green-100 text-green-800 border border-green-200'
-        })
-    elif temp > 35.0 and rain < 0.5:
-        irr_depth = "deep watering" if "clay" in soil_str or "loam" in soil_str else "frequent watering"
-        ai_suggestions.append({
-            'category': 'irrigation',
-            'title': '🏜️ High Evaporation Rate Alert',
-            'text': f"Temperature is high ({temp}°C) with no rain. For your {soil_str} soil, we recommend {irr_depth} during early morning or late evening to minimize moisture loss.",
-            'badge': 'bg-blue-100 text-blue-800 border border-blue-200'
-        })
+        print(f"Error fetching Open-Meteo data: {e}")
+        return render_template('farmer_weather.html', weather=None, forecast=None,
+                               suggestions=None, farmer=farmer, crop_context=None,
+                               error='Live weather information is temporarily unavailable. Please try again.')
+
+    crop_names = [c['crop_name'] for c in active_crops if c.get('crop_name')]
+    crop_context = ", ".join(crop_names) if crop_names else "No active crop registered"
+
+    # Deterministic advisory layer: Gemini explains these facts; it does not invent weather values.
+    rain_next_24 = sum(float(x or 0) for x in hourly.get('precipitation', [])[:24])
+    rain_next_48 = sum(float(x or 0) for x in hourly.get('precipitation', [])[:48])
+    et0_next_24 = sum(float(x or 0) for x in hourly.get('reference_evapotranspiration', [])[:24])
+    soil_moisture = next((x for x in hourly.get('soil_moisture_0_to_1cm', []) if x is not None), None)
+    temp = float(current['temperature_2m'])
+    humidity = float(current['relative_humidity_2m'])
+    current_rain = float(current.get('rain', 0) or 0)
+
+    if rain_next_24 >= 8:
+        irrigation_title = 'Irrigation: Wait'
+        irrigation_text = f'About {rain_next_24:.1f} mm of precipitation is expected in the next 24 hours. Irrigation may be unnecessary unless field conditions indicate otherwise.'
+    elif rain_next_24 >= 3:
+        irrigation_title = 'Irrigation: Use caution'
+        irrigation_text = f'About {rain_next_24:.1f} mm of precipitation is expected in the next 24 hours. Check field moisture before irrigating.'
+    elif et0_next_24 >= 4 and (soil_moisture is None or soil_moisture < 0.30):
+        irrigation_title = 'Irrigation: Consider irrigating'
+        irrigation_text = f'Rainfall is low while estimated reference evapotranspiration is about {et0_next_24:.1f} mm over 24 hours. Check field moisture and irrigate according to crop needs.'
     else:
-        ai_suggestions.append({
-            'category': 'irrigation',
-            'title': '💧 Standard Irrigation schedule',
-            'text': f"Current conditions ({temp}°C, {humidity}% humidity) are moderate. Follow your standard watering schedule for your {soil_str} soil.",
+        irrigation_title = 'Irrigation: Monitor'
+        irrigation_text = 'No strong rainfall or atmospheric-demand signal was detected. Check field moisture and follow the crop-specific irrigation schedule.'
+
+    suggestions = [{
+        'category': 'irrigation',
+        'title': irrigation_title,
+        'text': irrigation_text,
+        'badge': 'bg-gray-100 text-gray-800 border border-gray-200'
+    }]
+
+    if rain_next_24 >= 5:
+        suggestions.append({
+            'category': 'field work',
+            'title': 'Rain expected',
+            'text': f'{rain_next_24:.1f} mm precipitation is forecast in the next 24 hours. Consider postponing fertilizer or spraying that could be washed off.',
             'badge': 'bg-gray-100 text-gray-800 border border-gray-200'
         })
-        
-    # Fertilizer application advice
-    if rain > 3.0:
-        ai_suggestions.append({
-            'category': 'fertilizer',
-            'title': '⚠️ Postpone Fertilizer application',
-            'text': "Rainfall is active. Do not apply solid nitrogen or phosphorus fertilizers today, as they will wash away (leach) before the crop root systems can absorb them.",
-            'badge': 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+    if float(current.get('wind_speed_10m', 0) or 0) >= 8:
+        suggestions.append({
+            'category': 'spraying',
+            'title': 'High wind conditions',
+            'text': f"Current wind speed is {current['wind_speed_10m']:.1f} km/h. Avoid spraying when drift could affect application accuracy.",
+            'badge': 'bg-gray-100 text-gray-800 border border-gray-200'
         })
-    elif wind_speed > 6.0:
-        ai_suggestions.append({
-            'category': 'fertilizer',
-            'title': '💨 Avoid Spraying (High Winds)',
-            'text': f"Wind speed is {wind_speed} m/s. Avoid foliar sprays or pesticide spraying today as chemical drift will blow the spray away from your target plants.",
-            'badge': 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-        })
-    else:
-        ai_suggestions.append({
-            'category': 'fertilizer',
-            'title': '✓ Safe for Spraying / Fertilizer',
-            'text': "Wind speeds and rainfall levels are optimal. It is a safe window to apply fertilizer or pest treatments if needed.",
-            'badge': 'bg-green-100 text-green-800 border border-green-200'
-        })
-        
-    # Crop health & Pest warnings
-    crop_names = [c['crop_name'].lower() for c in active_crops]
-    crop_str = ", ".join(crop_names) if crop_names else "crops"
-    
-    if temp > 30.0 and humidity > 75.0:
-        ai_suggestions.append({
-            'category': 'crop_health',
-            'title': '🧫 Fungal Infection Risk: HIGH',
-            'text': f"Warm temperatures ({temp}°C) and high humidity ({humidity}%) create perfect breeding grounds for fungal diseases (like blight or blast) in your {crop_str}. Inspect leaf undersides closely.",
-            'badge': 'bg-red-100 text-red-800 border border-red-200'
-        })
-    elif temp < 15.0 and humidity > 80.0:
-        ai_suggestions.append({
-            'category': 'crop_health',
-            'title': '❄️ Downy Mildew warning',
-            'text': f"Cool, damp conditions increase susceptibility to downy mildew. Ensure proper spacing between your {crop_str} to allow airflow and sun exposure.",
-            'badge': 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-        })
-    else:
-        ai_suggestions.append({
-            'category': 'crop_health',
-            'title': '🌱 Stable Crop development',
-            'text': f"Atmospheric parameters indicate healthy conditions for your active crops ({crop_str}). No immediate disease outbreak risks predicted.",
-            'badge': 'bg-green-100 text-green-800 border border-green-200'
-        })
-        
-    # Summary weather details dict
-    weather_data = {
-        'address': address,
-        'temp': round(temp, 1),
-        'humidity': round(humidity, 1),
-        'rain': round(rain, 2),
-        'wind_speed': wind_speed,
-        'desc': weather_desc.capitalize()
-    }
-    
-    cursor.close()
-    return render_template('farmer_weather.html', farmer=farmer, weather=weather_data, suggestions=ai_suggestions)
 
+    # Optional Gemini explanation. Weather facts always come from Open-Meteo.
+    gemini_text = None
+    gemini_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+    if gemini_key:
+        try:
+            from google import genai
+            client = genai.Client(api_key=gemini_key)
+            prompt = f"""You are an agricultural advisory assistant.
+Use ONLY the supplied facts; do not invent measurements.
+Farmer's active crop(s): {crop_context}
+Current temperature: {temp:.1f} C
+Current humidity: {humidity:.0f}%
+Current rainfall: {current_rain:.1f} mm
+Rain forecast next 24h: {rain_next_24:.1f} mm
+Rain forecast next 48h: {rain_next_48:.1f} mm
+Reference ET0 next 24h: {et0_next_24:.1f} mm
+Soil moisture 0-1 cm: {('unavailable' if soil_moisture is None else f'{soil_moisture:.3f} m3/m3')}
+Give a concise, cautious farm advisory in 3 bullet points. Focus on irrigation, field work, and crop-weather considerations. Do not claim a disease is present."""
+            response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+            gemini_text = getattr(response, 'text', None)
+        except Exception as e:
+            print(f"Gemini advisory unavailable: {e}")
+
+    forecast = []
+    for i, day in enumerate(daily.get('time', [])):
+        forecast.append({
+            'date': day,
+            'min': daily.get('temperature_2m_min', [])[i],
+            'max': daily.get('temperature_2m_max', [])[i],
+            'rain': daily.get('precipitation_sum', [])[i],
+            'rain_probability': daily.get('precipitation_probability_max', [])[i],
+            'et0': daily.get('reference_evapotranspiration_sum', [])[i]
+        })
+
+    weather_data = {
+        'address': resolved_location,
+        'temp': round(temp, 1),
+        'feels_like': round(float(current.get('apparent_temperature', temp)), 1),
+        'humidity': round(humidity),
+        'rain': round(current_rain, 2),
+        'wind_speed': round(float(current.get('wind_speed_10m', 0)), 1),
+        'desc': f"Weather code {current.get('weather_code', 'N/A')}",
+        'rain_next_24': round(rain_next_24, 1),
+        'et0_next_24': round(et0_next_24, 1),
+        'soil_moisture': None if soil_moisture is None else round(float(soil_moisture), 3)
+    }
+
+    return render_template('farmer_weather.html', farmer=farmer, weather=weather_data,
+                           forecast=forecast, suggestions=suggestions,
+                           crop_context=crop_context, gemini_text=gemini_text)
 
 @app.route('/logout')
 def logout():
