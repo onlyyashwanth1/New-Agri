@@ -452,6 +452,8 @@ def farmer_crops():
     # Fetch farmer details
     cursor.execute("SELECT * FROM farmers WHERE aadhar_id = %s", (aadhar_id,))
     farmer = cursor.fetchone()
+    for crop in crops:
+        crop['status'] = get_crop_status(crop['planting_date'], crop['harvest_date'])
     cursor.close()
 
     # Render the farmer crops template
@@ -1101,7 +1103,7 @@ def manage_crops(aadhar_id):
         return redirect(url_for('home'))
 
     # Retrieve lands owned by the farmer
-    cursor.execute("SELECT land_id FROM lands WHERE aadhar_id = %s AND deleted = FALSE", (aadhar_id,))
+    cursor.execute("SELECT land_id, land_size FROM lands WHERE aadhar_id = %s AND deleted = FALSE", (aadhar_id,))
     available_lands = cursor.fetchall()
 
     # Check for search parameter in query string
@@ -1122,8 +1124,33 @@ def manage_crops(aadhar_id):
 
     cursor.close()
 
+    for crop in crops:
+        crop['status'] = get_crop_status(crop['planting_date'], crop['harvest_date'])
+
     return render_template('manage_crops.html', farmer=farmer, crops=crops, available_lands=available_lands, today_date=datetime.today().date())
 
+
+# Crop lifecycle helpers
+CROP_DURATIONS = {
+    'rice': 120, 'maize': 90, 'chickpea': 100, 'kidneybeans': 90,
+    'pigeonpeas': 150, 'mothbeans': 75, 'mungbean': 70, 'blackgram': 80,
+    'lentil': 120, 'pomegranate': 180, 'banana': 300, 'mango': 100,
+    'grapes': 120, 'watermelon': 90, 'muskmelon': 90, 'apple': 150,
+    'orange': 200, 'papaya': 270, 'coconut': 365, 'cotton': 150,
+    'jute': 120, 'coffee': 250, 'wheat': 120, 'sugarcane': 365
+}
+
+def estimate_harvest_date(crop_name, planting_date):
+    normalized_name = crop_name.lower().strip().replace(" ", "")
+    return planting_date + timedelta(days=CROP_DURATIONS.get(normalized_name, 120))
+
+def get_crop_status(planting_date, harvest_date):
+    today = datetime.today().date()
+    if planting_date and planting_date > today:
+        return 'Upcoming'
+    if harvest_date and harvest_date <= today:
+        return 'Harvested'
+    return 'Ongoing'
 
 # Route to add a new crop
 import joblib
@@ -1149,7 +1176,9 @@ def add_crop(aadhar_id):
     soil_ph = float(request.form['soil_ph'])
     planting_date = request.form['planting_date']
     harvest_date = request.form.get('harvest_date') or None
-    
+    crop_status = request.form.get('crop_status', 'new')
+    is_ongoing = crop_status == 'ongoing'
+
     if not (0 <= N_percent <= 100):
         flash("Invalid Nitogen Percent value. Value sholud be in between 0 and 100", 'error')
         return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
@@ -1168,27 +1197,19 @@ def add_crop(aadhar_id):
     cursor.execute("SELECT land_size FROM lands WHERE land_id = %s", (land_id,))
     land = cursor.fetchone()
 
-    planting_date_obj = datetime.strptime(planting_date, '%Y-%m-%d')
+    planting_date_obj = datetime.strptime(planting_date, '%Y-%m-%d').date()
+    today = datetime.today().date()
+    if is_ongoing and planting_date_obj > today:
+        flash("An ongoing crop must have a planting date on or before today.", "error")
+        return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
+
     if harvest_date:
-        harvest_date_obj = datetime.strptime(harvest_date, '%Y-%m-%d')
+        harvest_date_obj = datetime.strptime(harvest_date, '%Y-%m-%d').date()
         if planting_date_obj >= harvest_date_obj:
             flash("Planting date must be earlier than harvest date.", "error")
             return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
     else:
-        # Estimate harvest date based on crop type
-        crop_durations = {
-            'rice': 120, 'maize': 90, 'chickpea': 100, 'kidneybeans': 90,
-            'pigeonpeas': 150, 'mothbeans': 75, 'mungbean': 70, 'blackgram': 80,
-            'lentil': 120, 'pomegranate': 180, 'banana': 300, 'mango': 100,
-            'grapes': 120, 'watermelon': 90, 'muskmelon': 90, 'apple': 150,
-            'orange': 200, 'papaya': 270, 'coconut': 365, 'cotton': 150,
-            'jute': 120, 'coffee': 250, 'wheat': 120, 'sugarcane': 365
-        }
-        
-        c_name = crop_name.lower().replace(" ", "")
-        duration = crop_durations.get(c_name, 120) # Default to 120 days
-        
-        harvest_date_obj = planting_date_obj + timedelta(days=duration)
+        harvest_date_obj = estimate_harvest_date(crop_name, planting_date_obj)
         harvest_date = harvest_date_obj.strftime('%Y-%m-%d')
 
     # Check if the crop already exists
@@ -1219,7 +1240,14 @@ def add_crop(aadhar_id):
         
 
     try:
-        # Fetch climatology data and predict crop
+        cursor.execute("""
+            INSERT INTO crops (land_id, aadhar_id, crop_name, crop_size, N_percent, P_percent, K_percent, soil_ph, planting_date, harvest_date, crop_suggestion)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (land_id, aadhar_id, crop_name, crop_size, N_percent, P_percent, K_percent, soil_ph, planting_date, harvest_date, None))
+        mysql.connection.commit()
+
+        try:
+            # Fetch climatology data and predict crop
         cursor.execute("SELECT location FROM lands WHERE land_id = %s", (land_id,))
         land = cursor.fetchone()
 
@@ -1261,15 +1289,12 @@ def add_crop(aadhar_id):
                             'coconut', 'cotton', 'jute', 'coffee'
                         ]
                         predicted_label = crop_labels[predicted_class[0]]
-
-                        # Insert the crop along with the predicted suggestion directly into crops
                         cursor.execute("""
-                            INSERT INTO crops (land_id, aadhar_id, crop_name, crop_size, N_percent, P_percent, K_percent, soil_ph, planting_date, harvest_date, crop_suggestion)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        """, (land_id, aadhar_id, crop_name, crop_size, N_percent, P_percent, K_percent, soil_ph, planting_date, harvest_date, predicted_label))
-
+                            UPDATE crops SET crop_suggestion = %s
+                            WHERE land_id = %s AND aadhar_id = %s AND crop_name = %s AND planting_date = %s
+                        """, (predicted_label, land_id, aadhar_id, crop_name, planting_date))
                         mysql.connection.commit()
-                        flash(f"Suggested crop based on climatology: {predicted_label}", 'success')
+                        flash(f"Crop added successfully. ML suggestion: {predicted_label}", 'success')
                     else:
                         flash(f"Error fetching climate data from NASA: {power_response.status_code}", 'error')
                 else:
@@ -1277,11 +1302,17 @@ def add_crop(aadhar_id):
             else:
                 flash(f"Error fetching geolocation data from OpenWeatherMap: {geo_response.status_code}", 'error')
 
+            else:
+                flash("Crop added successfully. Crop suggestion could not be generated right now.", 'success')
+        except Exception as prediction_error:
+            print(f"Crop suggestion unavailable: {prediction_error}")
+            flash("Crop added successfully. Crop suggestion could not be generated right now.", 'success')
+
     except MySQLdb.MySQLError as e:
         mysql.connection.rollback()
         flash(f'Error storing data: {e}', 'error')
-
-    cursor.close()
+    finally:
+        cursor.close()
     return redirect(url_for('manage_crops', aadhar_id=aadhar_id))
 
 
