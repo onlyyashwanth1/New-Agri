@@ -43,7 +43,7 @@
             </div>
         {% endif %}
     {% endwith %}
-        <div class="mb-5"><a href="{{ url_for('available_loans') }}" class="px-4 py-2 bg-indigo-600 text-white rounded font-semibold">Apply for Loan</a></div>
+        <div class="mb-5"><a href="{{ url_for('available_loans') }}" class="inline-block px-4 py-2 border border-gray-300 bg-white text-gray-800 rounded-md font-medium hover:bg-gray-50">Apply for Loan</a></div>
 <!-- Search Bar -->
         <form id="search-form" action="{{ url_for('farmer_loans_taken') }}" method="GET" class="search-form">
             <input type="text" name="search_loan_taken" placeholder="Search by Loan Type" class="input-field">
