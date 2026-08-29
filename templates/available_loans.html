@@ -56,7 +56,7 @@
                 <tr>
                     <th>Loan Type</th>
                     <th>Description</th>
-                    <th>Eligibility</th>
+                    <th>Eligibility</th>{% if session.get('aadhar_id') %}<th>Action</th>{% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -64,7 +64,7 @@
                 <tr>
                     <td>{{ loan['loan_type'] }}</td>
                     <td>{{ loan['description'] }}</td>
-                    <td>{{ loan['eligibility'] }}</td>
+                    <td>{{ loan['eligibility'] }}</td>{% if session.get('aadhar_id') %}<td>{% if loan['application_status'] == 'pending' %}<span class="text-yellow-800 font-semibold">Pending Approval</span>{% elif loan['application_status'] == 'approved' %}<span class="text-green-800 font-semibold">Approved</span>{% elif loan['application_status'] == 'rejected' %}<span class="text-red-800 font-semibold">Rejected</span>{% else %}<a href="{{ url_for('apply_item', item_type='loan', item_name=loan['loan_type']) }}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded font-semibold">Apply Now</a>{% endif %}</td>{% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
