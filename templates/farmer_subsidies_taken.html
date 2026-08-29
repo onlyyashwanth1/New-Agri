@@ -44,7 +44,7 @@
             </div>
         {% endif %}
     {% endwith %}
-        <div class="mb-5"><a href="{{ url_for('available_subsidies') }}" class="px-4 py-2 bg-blue-600 text-white rounded font-semibold">Apply for Subsidy</a></div>
+        <div class="mb-5"><a href="{{ url_for('available_subsidies') }}" class="inline-block px-4 py-2 border border-gray-300 bg-white text-gray-800 rounded-md font-medium hover:bg-gray-50">Apply for Subsidy</a></div>
 <!-- Search Bar -->
     <form id="search-form" action="{{ url_for('farmer_subsidies_taken') }}" method="GET" class="search-form">
         <input type="text" name="search_subsidy_taken" placeholder="Search by Subsidy Name" class="input-field">
