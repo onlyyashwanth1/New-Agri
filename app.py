@@ -341,7 +341,7 @@ def farmer_weather():
             from google import genai
             ai_client = genai.Client(api_key=gemini_key)
             prompt = f"""You are an agricultural advisory assistant. Use only supplied facts and do not invent measurements. Active crops: {crop_context}. Current temperature: {temp:.1f} C. Current humidity: {humidity:.0f}%. Current rainfall: {current_rain:.1f} mm. Rain next 24h: {rain_next_24:.1f} mm. Rain next 48h: {rain_next_48:.1f} mm. Reference ET0 next 24h: {et0_next_24:.1f} mm. Soil moisture: {'unavailable' if soil_moisture is None else f'{soil_moisture:.3f} m3/m3'}. Give concise, cautious advice in 3 bullets focused on irrigation, field work, and crop-weather considerations. Do not claim a disease is present."""
-            response = ai_client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+            response = ai_client.models.generate_content(model='gemini-3.6-flash', contents=prompt)
             gemini_text = getattr(response, 'text', None)
         except Exception as e:
             print(f"Gemini advisory unavailable: {e}")
