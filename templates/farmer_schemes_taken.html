@@ -43,10 +43,8 @@
             </div>
         {% endif %}
     {% endwith %}
-    
-     <div class="mb-5 p-4 bg-gray-50 rounded border flex flex-wrap items-center gap-3"><span class="font-semibold">Apply for:</span><a href="{{ url_for('available_schemes') }}" class="px-4 py-2 bg-green-600 text-white rounded font-semibold">Scheme</a><a href="{{ url_for('available_subsidies') }}" class="px-4 py-2 bg-blue-600 text-white rounded font-semibold">Subsidy</a><a href="{{ url_for('available_loans') }}" class="px-4 py-2 bg-indigo-600 text-white rounded font-semibold">Loan</a></div>
-
-    <!-- Search Bar -->
+        <div class="mb-5"><a href="{{ url_for('available_schemes') }}" class="px-4 py-2 bg-green-600 text-white rounded font-semibold">Apply for Scheme</a></div>
+<!-- Search Bar -->
      <form id="search-form" action="{{ url_for('farmer_schemes_taken') }}" method="GET" class="search-form">
         <input type="text" name="search_scheme_taken" placeholder="Search by Scheme Name" class="input-field">
         <button type="submit" class="search-button">Search</button>
