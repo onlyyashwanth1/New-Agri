@@ -10,13 +10,25 @@
         <input type="hidden" name="item_type" value="{{ item_type }}">
         <input type="hidden" name="item_name" value="{{ item_name }}">
 
+        <div class="bg-green-50 p-4 rounded-md border border-green-100">
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Associated Land</label>
+            {% if lands %}
+            <select name="land_id" required class="w-full p-2.5 bg-white border border-gray-300 rounded">
+                {% for land in lands %}
+                <option value="{{ land['land_id'] }}">Land {{ loop.index }} — {{ land['location'] }} ({{ land['land_size'] }} Acres)</option>
+                {% endfor %}
+            </select>
+            <p class="text-xs text-gray-600 mt-2">Total land holding: <strong>{{ total_land_size }} Acres</strong>. Select the land this application relates to.</p>
+            {% else %}<p class="text-sm text-red-600 font-semibold">No registered land found. Add land before applying.</p>{% endif %}
+        </div>
+
         <!-- Scheme/Subsidy Information Block -->
         <div class="bg-blue-50 p-4 rounded-md mb-6 border border-blue-100">
             <h3 class="font-bold text-blue-900 mb-1">Applying For:</h3>
             <p class="text-lg font-semibold text-blue-800">{{ item_name }} ({{ item_type | capitalize }})</p>
             <p class="text-sm text-gray-600 mt-2"><span class="font-semibold">Description:</span> {{ item_details['description'] }}</p>
             <p class="text-sm text-gray-600 mt-1"><span class="font-semibold">Eligibility:</span> {{ item_details['eligibility'] }}</p>
-            <p class="text-sm text-red-600 mt-1 font-semibold"><span class="font-semibold text-gray-600">Last Date to Apply:</span> {{ item_details['last_date_apply'].strftime('%Y-%m-%d') }}</p>
+            <p class="text-sm text-red-600 mt-1 font-semibold"><span class="font-semibold text-gray-600">Last Date to Apply:</span> {% if item_details.get('last_date_apply') %}{{ item_details['last_date_apply'].strftime('%Y-%m-%d') }}{% else %}Not specified{% endif %}</p>
         </div>
 
         <!-- Pre-filled Demographics (Read-only) -->
@@ -68,7 +80,7 @@
             {% else %}
                 <a href="{{ url_for('available_schemes') }}" class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 font-semibold transition">Cancel</a>
             {% endif %}
-            <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold shadow transition">Submit Application</button>
+            {% if lands %}<button type="submit"{% else %}<button type="button" disabled{% endif %} class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold shadow transition">Submit Application</button>
         </div>
     </form>
 </div>
