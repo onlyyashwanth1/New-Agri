@@ -59,4 +59,10 @@
         <button type="submit" class="register-button">Register</button>
     </form>
 </div>
+
+<script>
+    const dobInput = document.getElementById('f_dob');
+    const today = new Date().toISOString().split('T')[0];
+    dobInput.max = today;
+</script>
 {% endblock %}
