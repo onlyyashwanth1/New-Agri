@@ -82,7 +82,7 @@
         <div class="max-w-6xl mx-auto flex justify-between items-center py-4 px-6">
             <div class="flex items-center">
                 <button class="sidebar-toggle mr-3" onclick="toggleSidebar()" aria-label="Toggle navigation">☰</button>
-                <h1 class="text-xl font-bold text-gray-800">{{ farmer.farmer_name }}</h1>
+                <h1 class="text-xl font-bold text-gray-800">{{ session.get('farmer_name', 'Farmer') }}</h1>
             </div>
             <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
         </div>
