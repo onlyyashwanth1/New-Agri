@@ -160,8 +160,6 @@ from dotenv import load_dotenv
 
 load_dotenv() 
 from twilio.rest import Client
-from flask import Flask, request, redirect, url_for, render_template, flash, session
-import MySQLdb
 
 # Twilio credentials
 account_sid = os.getenv("TWILIO_ACCOUNT_SID")
@@ -172,14 +170,25 @@ client = Client(username=account_sid, password=auth_token)
 def farmer_login():
     if request.method == 'POST':
         aadhar_id = request.form.get('aadhar_id')
-        phone_no = request.form.get('phone_no')
+        password = request.form.get('password')
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
         try:
-            # Query for farmer details
-            cursor.execute("SELECT * FROM farmers WHERE aadhar_id = %s AND phone_no = %s", (aadhar_id, phone_no))
+            # Query for farmer details by Aadhaar ID only
+            cursor.execute("SELECT * FROM farmers WHERE aadhar_id = %s", (aadhar_id,))
             farmer = cursor.fetchone()
+
+            if farmer and not farmer.get('password_hash'):
+                # Existing farmer record predates password_hash - do not crash, and do not guess a password
+                flash('Your account password has not been set up yet. Please contact the authority.', 'error')
+                farmer = None
+            elif farmer and not password:
+                farmer = None
+            elif farmer and not bcrypt.checkpw(password.encode('utf-8'), farmer['password_hash'].encode('utf-8')):
+                farmer = None
+
+            phone_no = farmer['phone_no'] if farmer else None
 
             if farmer:
                 session['aadhar_id'] = farmer['aadhar_id']
@@ -219,7 +228,7 @@ def farmer_login():
                 flash('Login successful!', 'success')
                 return redirect(url_for('farmer_details'))
             else:
-                flash('Invalid Aadhar ID or Phone Number.', 'error')
+                flash('Invalid Aadhar ID or Password.', 'error')
 
         except MySQLdb.Error as e:
             flash('An error occurred. Please try again.', 'error')
@@ -227,6 +236,63 @@ def farmer_login():
             cursor.close()
 
     return render_template('farmer_login.html')
+
+
+@app.route('/change_password', methods=['GET', 'POST'])
+def change_password():
+    # Requires the farmer to already be logged in. Completely optional/casual -
+    # not tied to first_login or any "must change password" flag.
+    if 'aadhar_id' not in session:
+        flash('You need to log in first.', 'error')
+        return redirect(url_for('farmer_login'))
+
+    aadhar_id = session['aadhar_id']
+
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not current_password or not new_password or not confirm_password:
+            flash('Please fill in all password fields.', 'error')
+            return render_template('change_password.html')
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        try:
+            cursor.execute("SELECT password_hash FROM farmers WHERE aadhar_id = %s", (aadhar_id,))
+            farmer = cursor.fetchone()
+
+            if not farmer or not farmer.get('password_hash'):
+                flash('Your account password has not been set up yet. Please contact the authority.', 'error')
+                return render_template('change_password.html')
+
+            if not bcrypt.checkpw(current_password.encode('utf-8'), farmer['password_hash'].encode('utf-8')):
+                flash('Current password is incorrect.', 'error')
+                return render_template('change_password.html')
+
+            if new_password != confirm_password:
+                flash('New password and confirmation do not match.', 'error')
+                return render_template('change_password.html')
+
+            new_password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+            cursor.execute(
+                "UPDATE farmers SET password_hash = %s WHERE aadhar_id = %s",
+                (new_password_hash, aadhar_id)
+            )
+            mysql.connection.commit()
+
+            flash('Password changed successfully!', 'success')
+            return redirect(url_for('farmer_details'))
+
+        except MySQLdb.Error as e:
+            mysql.connection.rollback()
+            flash('An error occurred while changing your password. Please try again.', 'error')
+        finally:
+            cursor.close()
+
+    return render_template('change_password.html')
+
 
 @app.route('/farmer_weather', methods=['GET', 'POST'])
 def farmer_weather():
@@ -859,6 +925,14 @@ def addfarmer():
             flash('Please provide a valid City, 6-digit Pincode, and State.', 'error')
             return render_template('addfarmer.html', auth_name=session.get('auth_name'))
         aadhar_id = request.form.get('f_aadharId')
+        password = request.form.get('f_password')
+
+        if not password:
+            flash('Please provide an initial password for the farmer.', 'error')
+            return render_template('addfarmer.html', auth_name=session.get('auth_name'))
+
+        # Hash the initial password - only the hash is ever stored
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
         # Connect to MySQL database
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -884,9 +958,9 @@ def addfarmer():
         # Insert farmer details into the database
         try:
             cursor.execute(
-                """INSERT INTO farmers (farmer_name, date_of_birth, gender, phone_no, address, aadhar_id) 
-                   VALUES (%s, %s, %s, %s, %s, %s)""",
-                (farmer_name, date_of_birth, gender, phone_no, address, aadhar_id)
+                """INSERT INTO farmers (farmer_name, date_of_birth, gender, phone_no, address, aadhar_id, password_hash) 
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                (farmer_name, date_of_birth, gender, phone_no, address, aadhar_id, password_hash)
             )
             mysql.connection.commit()
             flash('Farmer registered successfully!', 'success')
@@ -2209,4 +2283,3 @@ if __name__ == '__main__':
     with app.app_context():
        send_notifications(client)
     app.run(debug=True)
-    
