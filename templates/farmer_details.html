@@ -9,7 +9,6 @@
 {% block content %}
 <div class="main-container">
 
-    <!-- Flash Messages for Feedback -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="flash-messages">
@@ -19,10 +18,9 @@
             </div>
         {% endif %}
     {% endwith %}
-    
+
     <h2 class="title">Farmer Details</h2>
 
-    <!-- Displaying Farmer Details -->
     <div class="details-group">
         <div class="detail-item">
             <label for="f_name">Name</label>
@@ -53,6 +51,10 @@
             <label for="f_aadharId">AADHAR ID</label>
             <span id="f_aadharId">{{ farmer['aadhar_id'] }}</span>
         </div>
+    </div>
+
+    <div class="mt-6 text-center">
+        <a href="{{ url_for('change_password') }}" class="submit-button inline-block">Change Password</a>
     </div>
 </div>
 {% endblock %}
