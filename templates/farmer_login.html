@@ -24,11 +24,11 @@
         <form method="POST" action="{{ url_for('farmer_login') }}">
             <div class="mb-4">
                 <label for="aadhar_id" class="form-label">Aadhar ID</label>
-                <input type="text" id="aadhar_id" name="aadhar_id" class="form-input" required>
+                <input type="text" id="aadhar_id" name="aadhar_id" class="form-input" required pattern="[0-9]{12}" title="Aadhar ID should be 12 digits">
             </div>
             <div class="mb-6">
-                <label for="phone_no" class="form-label">Phone Number</label>
-                <input type="text" id="phone_no" name="phone_no" class="form-input" required>
+                <label for="password" class="form-label">Password</label>
+                <input type="password" id="password" name="password" class="form-input" required>
             </div>
             <div class="flex items-center justify-center">
                 <button type="submit" class="submit-button">Login</button>
