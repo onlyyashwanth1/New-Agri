@@ -1,35 +1,46 @@
-
 {% extends "base3.html" %}
 
 {% block title %}Manage Lands{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles1.css') }}">
 <style>
-    /* Add Land Form */
     .add-land-form {
-        margin-bottom: 20px; /* Space below form */
+        margin-bottom: 20px;
     }
-    /* Lands Table */
+
     #lands-table {
-        width: 100%; /* Full width */
-        border-collapse: collapse; /* Combine borders */
+        width: 100%;
+        border-collapse: collapse;
     }
 
     #lands-table th,
     #lands-table td {
-        border: 1px solid #ddd; /* Borders for cells */
-        padding: 8px; /* Padding for cells */
-        text-align: left; /* Align text to left */
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
     }
 
     #lands-table th {
-        background-color: #f2f2f2; /* Light gray for header */
+        background-color: #f2f2f2;
     }
 
-    /* Hover effect for table rows */
     #lands-table tr:hover {
-        background-color: #f1f1f1; /* Light gray on hover */
+        background-color: #f1f1f1;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+    }
+
+    .land-input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
     }
 </style>
 {% endblock %}
@@ -37,7 +48,6 @@
 {% block content %}
 <div class="main-container">
 
-    <!-- Flash Messages for Feedback -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             <div class="flash-messages">
@@ -48,211 +58,309 @@
         {% endif %}
     {% endwith %}
 
-    <!-- Search Bar -->
-    <form id="search-form" action="{{ url_for('manage_lands', aadhar_id=farmer['aadhar_id']) }}" method="GET" class="search-form">
-        <input type="text" name="search_land" placeholder="Search by Location" required class="input-field">
+    <!-- Search -->
+    <form
+        id="search-form"
+        action="{{ url_for('manage_lands', aadhar_id=farmer['aadhar_id']) }}"
+        method="GET"
+        class="search-form"
+    >
+        <input
+            type="text"
+            name="search_land"
+            placeholder="Search by Location"
+            required
+            class="input-field"
+        >
         <button type="submit" class="search-button">Search</button>
     </form>
 
-    <!-- Add New Land Button -->
-    <button id="toggle-add-land" class="add-button">Add New Land</button>
+    <!-- Add New Land -->
+    <button
+        type="button"
+        id="toggle-add-land"
+        class="add-button"
+    >
+        Add New Land
+    </button>
 
-    <!-- Add New Land Form (Initially Hidden) -->
-    <form id="add-land-form" method="POST" action="{{ url_for('add_land', aadhar_id=farmer['aadhar_id']) }}" class="add-land-form" style="display:none;">
+    <form
+        id="add-land-form"
+        method="POST"
+        action="{{ url_for('add_land', aadhar_id=farmer['aadhar_id']) }}"
+        class="add-land-form"
+        style="display:none;"
+    >
         <h2 class="form-title">Register New Land</h2>
 
-        <!-- Location -->
         <div class="form-group">
-            <label for="location">Location</label>
-            <input type="text" name="location" required placeholder="Enter Location" class="input-field">
+            <label for="land_city">City</label>
+            <input
+                type="text"
+                id="land_city"
+                name="land_city"
+                required
+                placeholder="Enter City"
+                class="input-field"
+            >
         </div>
 
-        <!-- Soil Type -->
+        <div class="form-group">
+            <label for="land_pincode">Pincode</label>
+            <input
+                type="text"
+                id="land_pincode"
+                name="land_pincode"
+                required
+                inputmode="numeric"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                placeholder="Enter 6-digit Pincode"
+                class="input-field"
+                title="Pincode must contain exactly 6 digits"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="land_state">State</label>
+            <input
+                type="text"
+                id="land_state"
+                name="land_state"
+                required
+                placeholder="Enter State"
+                class="input-field"
+            >
+        </div>
+
         <div class="form-group">
             <label for="soil_type">Soil Type</label>
-            <input type="text" name="soil_type" required placeholder="Enter Soil Type" class="input-field">
+            <input
+                type="text"
+                id="soil_type"
+                name="soil_type"
+                required
+                placeholder="Enter Soil Type"
+                class="input-field"
+            >
         </div>
 
-        <!-- Land Size -->
         <div class="form-group">
             <label for="land_size">Land Size (in acres)</label>
-            <input type="number" step="0.01" name="land_size" required placeholder="Enter Land Size" class="input-field" min="0.01" title="Land size must be a positive number greater than 0 acres">
+            <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                id="land_size"
+                name="land_size"
+                required
+                placeholder="Enter Land Size"
+                class="input-field"
+            >
         </div>
 
-        <!-- Submit Button -->
         <button type="submit" class="submit-button">Add Land</button>
         <button type="button" class="cancel-button" onclick="toggleForm()">Cancel</button>
     </form>
 
-    <!-- Lands Table -->
+    <!-- Existing Lands -->
     <div class="table-container">
         <table id="lands-table">
             <thead>
                 <tr>
                     <th>Land ID</th>
-                    <th>City</th><th>Pincode</th><th>State</th>
+                    <th>City</th>
+                    <th>Pincode</th>
+                    <th>State</th>
                     <th>Soil Type</th>
                     <th>Land Size</th>
                     <th>Actions</th>
                 </tr>
             </thead>
+
             <tbody>
                 {% for land in lands %}
-                    <tr data-id="{{ land['land_id'] }}">
-                        <td>{{ land['land_id'] }}</td>
-                        <td contenteditable="true" data-field="land_city">{{ land['location_parts']['city'] }}</td>
-                        <td contenteditable="true" data-field="land_pincode">{{ land['location_parts']['pincode'] }}</td>
-                        <td contenteditable="true" data-field="land_state">{{ land['location_parts']['state'] }}</td>
-                        <td contenteditable="true" data-field="soil_type">{{ land['soil_type'] }}</td>
-                        <td contenteditable="true" data-field="land_size">{{ land['land_size'] }}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <form action="{{ url_for('update_land', aadhar_id=farmer['aadhar_id'], land_id=land['land_id']) }}" method="post" onsubmit="return handleUpdate(event, '{{ farmer['aadhar_id'] }}', '{{ land['land_id'] }}');">
-                                    <button type="submit" class="action-button update-button">Update</button>
-                                </form>
-                                <form action="{{ url_for('delete_land', aadhar_id=farmer['aadhar_id'], land_id=land['land_id']) }}" method="post">
-                                    <button type="submit" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this land?');">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
+                <tr data-id="{{ land['land_id'] }}">
+                    <td>{{ land['land_id'] }}</td>
+
+                    <td
+                        contenteditable="true"
+                        data-field="land_city"
+                    >{{ land['location_parts']['city'] }}</td>
+
+                    <td
+                        contenteditable="true"
+                        data-field="land_pincode"
+                    >{{ land['location_parts']['pincode'] }}</td>
+
+                    <td
+                        contenteditable="true"
+                        data-field="land_state"
+                    >{{ land['location_parts']['state'] }}</td>
+
+                    <td
+                        contenteditable="true"
+                        data-field="soil_type"
+                    >{{ land['soil_type'] }}</td>
+
+                    <td
+                        contenteditable="true"
+                        data-field="land_size"
+                    >{{ land['land_size'] }}</td>
+
+                    <td>
+                        <div class="action-buttons">
+
+                            <form
+                                action="{{ url_for(
+                                    'update_land',
+                                    aadhar_id=farmer['aadhar_id'],
+                                    land_id=land['land_id']
+                                ) }}"
+                                method="post"
+                                onsubmit="return handleUpdate(
+                                    event,
+                                    '{{ farmer['aadhar_id'] }}',
+                                    '{{ land['land_id'] }}'
+                                );"
+                            >
+                                <button
+                                    type="submit"
+                                    class="action-button update-button"
+                                >
+                                    Update
+                                </button>
+                            </form>
+
+                            <form
+                                action="{{ url_for(
+                                    'delete_land',
+                                    aadhar_id=farmer['aadhar_id'],
+                                    land_id=land['land_id']
+                                ) }}"
+                                method="post"
+                            >
+                                <button
+                                    type="submit"
+                                    class="action-button delete-button"
+                                    onclick="return confirm('Are you sure you want to delete this land?');"
+                                >
+                                    Delete
+                                </button>
+                            </form>
+
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- JavaScript Section -->
 <script>
-    // Toggle visibility of the add land form
-    document.getElementById("toggle-add-land").addEventListener("click", function() {
-        const form = document.getElementById("add-land-form");
-        form.style.display = (form.style.display === "none" || form.style.display === "") ? "block" : "none";
-    });
+    document
+        .getElementById("toggle-add-land")
+        .addEventListener("click", function () {
+            const form = document.getElementById("add-land-form");
+
+            if (form.style.display === "none" || form.style.display === "") {
+                form.style.display = "block";
+            } else {
+                form.style.display = "none";
+            }
+        });
 
     function toggleForm() {
-        const form = document.getElementById("add-land-form");
-        form.style.display = "none";
+        document.getElementById("add-land-form").style.display = "none";
     }
 
     function handleUpdate(event, aadharId, landId) {
         event.preventDefault();
 
         const row = document.querySelector(`tr[data-id="${landId}"]`);
-        if (!row) return;
 
-        const city = row.querySelector('td[data-field="land_city"]').innerText.trim();
-        const pincode = row.querySelector('td[data-field="land_pincode"]').innerText.trim();
-        const state = row.querySelector('td[data-field="land_state"]').innerText.trim();
-        const soilType = row.querySelector('td[data-field="soil_type"]').innerText.trim();
-        const landSize = row.querySelector('td[data-field="land_size"]').innerText.trim();
+        if (!row) {
+            alert("Land row not found.");
+            return false;
+        }
 
-        if (!city || !/^\d{6}$/.test(pincode) || !state || !soilType || !landSize) {
-            alert('Please provide a valid City, 6-digit Pincode, State, Soil Type, and Land Size.');
-            return;
+        const city = row
+            .querySelector('td[data-field="land_city"]')
+            .innerText
+            .trim();
+
+        const pincode = row
+            .querySelector('td[data-field="land_pincode"]')
+            .innerText
+            .trim();
+
+        const state = row
+            .querySelector('td[data-field="land_state"]')
+            .innerText
+            .trim();
+
+        const soilType = row
+            .querySelector('td[data-field="soil_type"]')
+            .innerText
+            .trim();
+
+        const landSize = row
+            .querySelector('td[data-field="land_size"]')
+            .innerText
+            .trim();
+
+        if (!city) {
+            alert("Please provide a valid City.");
+            return false;
+        }
+
+        if (!/^\d{6}$/.test(pincode)) {
+            alert("Please provide a valid 6-digit Pincode.");
+            return false;
+        }
+
+        if (!state) {
+            alert("Please provide a valid State.");
+            return false;
+        }
+
+        if (!soilType) {
+            alert("Please provide a valid Soil Type.");
+            return false;
+        }
+
+        if (!landSize || isNaN(landSize) || Number(landSize) <= 0) {
+            alert("Please provide a valid Land Size.");
+            return false;
         }
 
         const formData = new FormData();
-        formData.append('land_city', city);
-        formData.append('land_pincode', pincode);
-        formData.append('land_state', state);
-        formData.append('soil_type', soilType);
-        formData.append('land_size', landSize);
 
-        fetch(`/update_land/${aadharId}/${landId}`, { method: 'POST', body: formData })
-            .then(response => {
-                if (response.ok) window.location.reload();
-                else alert('Error updating land information.');
-            })
-            .catch(() => alert('Error updating land information.'));
+        formData.append("land_city", city);
+        formData.append("land_pincode", pincode);
+        formData.append("land_state", state);
+        formData.append("soil_type", soilType);
+        formData.append("land_size", landSize);
+
+        fetch(`/update_land/${aadharId}/${landId}`, {
+            method: "POST",
+            body: formData
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert("Error updating land information.");
+            }
+        })
+        .catch(error => {
+            console.error("Error updating land:", error);
+            alert("Error updating land information.");
+        });
+
+        return false;
     }
 </script>
-{% endblock %}
-) | list | first | default('', true) %}
-                        {% set city = parts[0].strip() if parts else '' %}
-                        {% set state = parts[-1].strip() if parts|length > 1 else '' %}
-                        <td contenteditable="true" data-field="land_city">{{ city }}</td>
-                        <td contenteditable="true" data-field="land_pincode">{{ pincode.strip() }}</td>
-                        <td contenteditable="true" data-field="land_state">{{ state }}</td>
-                        <td contenteditable="true" data-field="soil_type">{{ land['soil_type'] }}</td>
-                        <td contenteditable="true" data-field="land_size">{{ land['land_size'] }}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <form action="{{ url_for('update_land', aadhar_id=farmer['aadhar_id'], land_id=land['land_id']) }}" method="post" onsubmit="return handleUpdate(event, '{{ farmer['aadhar_id'] }}', '{{ land['land_id'] }}');">
-                                    <button type="submit" class="action-button update-button">Update</button>
-                                </form>
 
-                                <form action="{{ url_for('delete_land', aadhar_id=farmer['aadhar_id'], land_id=land['land_id']) }}" method="post">
-                                    <button type="submit" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this land?');">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- JavaScript Section -->
-<script>
-    // Toggle visibility of the add land form
-    document.getElementById("toggle-add-land").addEventListener("click", function() {
-        const form = document.getElementById("add-land-form");
-        form.style.display = (form.style.display === "none" || form.style.display === "") ? "block" : "none";
-    });
-
-    function toggleForm() {
-        const form = document.getElementById("add-land-form");
-        form.style.display = "none";
-    }
-
-    function handleUpdate(event, aadharId, landId) {
-       event.preventDefault(); // Prevent form submission
-    
-    // Locate the row with the specific land ID
-    const row = document.querySelector(`tr[data-id="${landId}"]`);
-    if (!row) {
-        console.error(`Row with ID ${landId} not found`);
-        return;
-    }
-
-    // Get field values
-    const location = row.querySelector('td[data-field="location"]').innerText.trim();
-    const soilType = row.querySelector('td[data-field="soil_type"]').innerText.trim();
-    const landSize = row.querySelector('td[data-field="land_size"]').innerText.trim();
-
-    // Validate fields
-    if (!location || !soilType || !landSize) {
-        alert('All fields (Location, Soil Type, and Land Size) must be filled!');
-        return;
-    }
-
-    // Collect data to send to the server
-    const formData = new FormData();
-    formData.append('location', location);
-    formData.append('soil_type', soilType);
-    formData.append('land_size', landSize);
-
-    // Send POST request to update land information
-    fetch(`/update_land/${aadharId}/${landId}`, {
-        method: 'POST',
-        body: formData,
-    })
-    .then(response => {
-        if (response.ok) {
-            console.log('Update successful!');
-            location.reload(); // Reload the page to show updated data
-        } else {
-            console.error('Response not OK:', response);
-            alert('Error updating land information');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        /*alert('There was an error updating the land information. Please try again.');*/
-    });
-}
-
-</script>
 {% endblock %}
